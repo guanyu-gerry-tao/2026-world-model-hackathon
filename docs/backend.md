@@ -1,62 +1,62 @@
-# CityWalk 后端文档
+# CityWalk — Backend Documentation
 
-> 版本：v0.1 · 最后更新：2026-03-13
-
----
-
-## 一、概述
-
-后端是一个 **Node.js + Express** 服务器，负责处理图片生成流水线：
-
-```
-用户照片
-  → Gemini API（Nano Banana Pro）生成 360° 全景图
-  → Marble API（World Labs）将全景图转换为 Gaussian Splat (.spz)
-  → 产物保存到 output/ 目录，供 PICO WebXR 前端加载
-```
-
-所有生成都是**异步 job**：提交后立即返回 `jobId`，然后轮询状态。
+> Version: v0.1 · Last updated: 2026-03-13
 
 ---
 
-## 二、快速启动
+## Overview
+
+The backend is a **Node.js + Express** server that handles the image generation pipeline:
+
+```
+User photos
+  → Gemini API (Nano Banana Pro) — generate 360° panorama
+  → Marble API (World Labs) — convert panorama to Gaussian Splat (.spz)
+  → Output saved to output/ directory for PICO WebXR frontend to load
+```
+
+All generation runs as **async jobs**: submit and immediately receive a `jobId`, then poll for status.
+
+---
+
+## Quick Start
 
 ```bash
 cd backend
 
-# 1. 安装依赖
+# 1. Install dependencies
 npm install
 
-# 2. 配置环境变量
+# 2. Configure environment variables
 cp .env.example .env
-# 编辑 .env，填入 API keys（或保持 USE_MOCK=true 跳过真实调用）
+# Edit .env — fill in API keys, or keep USE_MOCK=true to skip real API calls
 
-# 3. 启动服务器（开发模式，文件变化自动重启）
+# 3. Start server (dev mode, auto-restart on file changes)
 npm run dev
 
-# 4. 确认服务正常
+# 4. Verify server is running
 curl http://localhost:3001/health
 # → {"ok":true}
 ```
 
 ---
 
-## 三、环境变量（.env）
+## Environment Variables (.env)
 
-| 变量 | 说明 | 必填 |
-|------|------|------|
-| `GEMINI_API_KEY` | Google AI Studio API Key | 真实模式必填 |
-| `MARBLE_API_KEY` | World Labs API Key | 真实模式必填 |
-| `PORT` | 服务器端口，默认 `3001` | 否 |
-| `USE_MOCK` | `true` 时跳过所有真实 API 调用，无需 key | 否 |
+| Variable | Description | Required |
+|----------|-------------|---------|
+| `GEMINI_API_KEY` | Google AI Studio API Key | Required in real mode |
+| `MARBLE_API_KEY` | World Labs API Key | Required in real mode |
+| `PORT` | Server port, default `3001` | No |
+| `USE_MOCK` | When `true`, skips all real API calls — no keys needed | No |
 
-**Mock 模式（开发/测试用）：**
+**Mock mode (for development / testing):**
 ```env
 USE_MOCK=true
 ```
-整个 pipeline 逻辑正常执行，但 Gemini 和 Marble 返回假数据，约 5 秒完成。
+Full pipeline logic executes normally, but Gemini and Marble return fake data. Completes in ~5 seconds.
 
-**真实模式：**
+**Real mode:**
 ```env
 USE_MOCK=false
 GEMINI_API_KEY=AIza...
@@ -65,77 +65,77 @@ MARBLE_API_KEY=wlt_...
 
 ---
 
-## 四、API 接口
+## API Reference
 
-### 4.1 健康检查
+### Health Check
 
 ```http
 GET /health
 ```
 
-**响应：**
+**Response:**
 ```json
 { "ok": true }
 ```
 
 ---
 
-### 4.2 发起生成任务
+### Start Generation Job
 
 ```http
 POST /pipeline/generate
 Content-Type: multipart/form-data
 ```
 
-**请求字段（multipart form）：**
+**Request fields (multipart form):**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `photos` | File（最多 8 个） | ✅ | 用户个人照片，JPG/PNG |
-| `template` | File（最多 1 个） | 否 | 城市模板全景图（Mode A） |
-| `description` | string | 否 | 世界描述，如 `"东京涩谷夜晚"` |
-| `cityId` | string | 否 | 输出目录名，如 `"tokyo-shibuya"` |
-| `quality` | `"fast"` \| `"pro"` | 否 | Gemini 模型质量，默认 `"fast"` |
-| `marbleModel` | `"Marble 0.1-mini"` \| `"Marble 0.1-plus"` | 否 | 默认 `"Marble 0.1-mini"` |
+| Field | Type | Required | Description |
+|-------|------|---------|-------------|
+| `photos` | File (up to 8) | ✅ | User personal photos, JPG/PNG |
+| `template` | File (up to 1) | No | City template panorama (Mode A) |
+| `description` | string | No | World description, e.g. `"Tokyo Shibuya at night"` |
+| `cityId` | string | No | Output directory name, e.g. `"tokyo-shibuya"` |
+| `quality` | `"fast"` \| `"pro"` | No | Gemini model quality, default `"fast"` |
+| `marbleModel` | `"Marble 0.1-mini"` \| `"Marble 0.1-plus"` | No | Default `"Marble 0.1-mini"` |
 
-> **Mode A（模板融合）：** 同时提供 `photos` 和 `template`，照片被自然嵌入城市场景
+> **Mode A (template fusion):** Provide both `photos` and `template` — photos are naturally embedded into the city scene
 >
-> **Mode B（从头生成）：** 只提供 `photos`（+ 可选 `description`），生成全新世界
+> **Mode B (from scratch):** Provide only `photos` (+ optional `description`) — generates a brand-new world
 
-**响应：**
+**Response:**
 ```json
 { "jobId": "mmpy4giqt1au" }
 ```
 
-立即返回，不等待生成完成。
+Returns immediately without waiting for generation to complete.
 
-**curl 示例：**
+**curl examples:**
 ```bash
-# Mode B — 从头生成
+# Mode B — from scratch
 curl -X POST http://localhost:3001/pipeline/generate \
   -F "photos=@photo1.jpg" \
   -F "photos=@photo2.jpg" \
-  -F "description=东京涩谷夜晚街道" \
+  -F "description=Tokyo Shibuya night street" \
   -F "cityId=tokyo-shibuya" \
   -F "marbleModel=Marble 0.1-mini"
 
-# Mode A — 城市模板 + 照片融合
+# Mode A — city template + photo fusion
 curl -X POST http://localhost:3001/pipeline/generate \
   -F "photos=@my_photo.jpg" \
   -F "template=@shibuya_template.png" \
-  -F "description=东京涩谷" \
+  -F "description=Tokyo Shibuya" \
   -F "cityId=tokyo-shibuya"
 ```
 
 ---
 
-### 4.3 查询任务状态
+### Poll Job Status
 
 ```http
 GET /pipeline/status/:jobId
 ```
 
-**响应（进行中）：**
+**Response (in progress):**
 ```json
 {
   "id": "mmpy4giqt1au",
@@ -146,23 +146,23 @@ GET /pipeline/status/:jobId
 }
 ```
 
-**status 状态流转：**
+**Status flow:**
 
 ```
 pending → generating_panorama → generating_world → downloading → done
                                                                ↘ error
 ```
 
-| status | 含义 |
-|--------|------|
-| `pending` | 任务已创建，等待开始 |
-| `generating_panorama` | 正在调用 Gemini 生成全景图（~10s） |
-| `generating_world` | 正在调用 Marble 生成 3D 世界（mini: 30-45s，plus: ~5min） |
-| `downloading` | 正在下载 .spz 文件到本地 |
-| `done` | 完成，result 字段包含产物信息 |
-| `error` | 失败，error 字段包含错误信息 |
+| Status | Meaning |
+|--------|---------|
+| `pending` | Job created, waiting to start |
+| `generating_panorama` | Calling Gemini to generate panorama (~10s) |
+| `generating_world` | Calling Marble to generate 3D world (mini: 30-45s, plus: ~5min) |
+| `downloading` | Downloading .spz file to local disk |
+| `done` | Complete — `result` field contains output info |
+| `error` | Failed — `error` field contains error message |
 
-**响应（完成）：**
+**Response (complete):**
 ```json
 {
   "id": "mmpy4giqt1au",
@@ -186,68 +186,68 @@ pending → generating_panorama → generating_world → downloading → done
 }
 ```
 
-**轮询建议：每 2 秒查询一次，直到 status 为 `done` 或 `error`。**
+**Recommended polling interval: every 2 seconds until status is `done` or `error`.**
 
 ---
 
-### 4.4 访问生成文件
+### Access Generated Files
 
 ```http
 GET /output/:cityId/:filename
 ```
 
-生成完成后，产物通过 HTTP 直接访问：
+After generation completes, output files are served directly over HTTP:
 
 ```
-GET /output/tokyo-shibuya/panorama.png   # 生成的全景图
-GET /output/tokyo-shibuya/world.spz      # Gaussian Splat 文件
+GET /output/tokyo-shibuya/panorama.png   # generated panorama
+GET /output/tokyo-shibuya/world.spz      # Gaussian Splat file
 ```
 
-PICO WebXR 前端可以直接用这个 URL 加载 `.spz`：
+The PICO WebXR frontend can load `.spz` directly from this URL:
 ```javascript
-// citywalk 前端加载示例
 const spzUrl = "http://localhost:3001/output/tokyo-shibuya/world.spz";
 ```
 
 ---
 
-## 五、目录结构
+## Directory Structure
 
 ```
 backend/
-├── server.js                    # Express 入口，端口 3001
+├── server.js                    # Express entry point, port 3001
 ├── package.json
-├── .env                         # 本地环境变量（不提交 git）
-├── .env.example                 # 环境变量模板
-├── test-pipeline.js             # 端到端测试脚本
-├── uploads/                     # 临时上传目录（自动清理）
-├── output/                      # 生成产物
+├── .env                         # Local env vars (not committed)
+├── .env.example                 # Env var template
+├── test-pipeline.js             # End-to-end test script
+├── test_gemini.py               # Standalone Gemini test (Python)
+├── uploads/                     # Temp upload directory (auto-cleaned)
+├── output/                      # Generated output
 │   └── {cityId}/
-│       ├── panorama.png         # 融合全景图
+│       ├── panorama.png         # Fused panorama
 │       └── world.spz            # Gaussian Splat
 └── src/
     ├── services/
-    │   ├── gemini.js            # Gemini API（全景图生成）
-    │   └── marble.js            # Marble API（世界生成 + 轮询 + 下载）
+    │   ├── gemini.js            # Gemini API (panorama generation)
+    │   └── marble.js            # Marble API (world gen + polling + download)
     ├── routes/
-    │   └── pipeline.js          # /pipeline 路由 + job 管理
+    │   └── pipeline.js          # /pipeline routes + job management
     └── mock/
-        └── panorama.js          # Mock 全景图（USE_MOCK=true 时使用）
+        └── panorama.js          # Mock panorama (used when USE_MOCK=true)
 ```
 
 ---
 
-## 六、端对端测试
+## End-to-End Test
 
 ```bash
-# 终端 1：启动服务器
+# Terminal 1: start server
 npm run dev
 
-# 终端 2：运行测试（USE_MOCK=true 无需真实 API）
+# Terminal 2: run test (USE_MOCK=true, no real API needed)
 node test-pipeline.js
 ```
 
-**预期输出：**
+**Expected output:**
 ```
 ── CityWalk Pipeline Test ──
 
@@ -268,27 +268,49 @@ node test-pipeline.js
 
 ---
 
-## 七、从 Mock 切换到真实 API
+## Standalone Gemini Test (Python)
 
-1. 获取 API keys：
-   - Gemini：[Google AI Studio](https://aistudio.google.com/)
-   - Marble：[World Labs](https://www.worldlabs.ai/)
+Tests only the Gemini panorama step, no server required:
 
-2. 编辑 `.env`：
+```bash
+pip install google-genai
+export GEMINI_API_KEY=your_key
+
+# Mode B — quickest, no photos needed
+python test_gemini.py --mode b --desc "Tokyo neon street at night, empty"
+
+# Mode B — with your own photos
+python test_gemini.py --mode b --photos photo1.jpg photo2.jpg --desc "Shanghai alley"
+
+# Mode A — template + photos
+python test_gemini.py --mode a --template panorama.jpg --photos photo1.jpg
+```
+
+Output saved to `output/gemini-test/panorama_modeB_<timestamp>.png`.
+
+---
+
+## Switching from Mock to Real API
+
+1. Get API keys:
+   - Gemini: [Google AI Studio](https://aistudio.google.com/)
+   - Marble: [World Labs](https://www.worldlabs.ai/)
+
+2. Edit `.env`:
    ```env
    USE_MOCK=false
    GEMINI_API_KEY=AIza...
    MARBLE_API_KEY=wlt_...
    ```
 
-3. 测试时建议先用 `Marble 0.1-mini`（30-45 秒，便宜），确认 pipeline 通了再换 `Marble 0.1-plus`（5 分钟，高质量）
+3. Start with `Marble 0.1-mini` (30-45 seconds, cheaper) to confirm pipeline works end-to-end before switching to `Marble 0.1-plus` (5 minutes, higher quality)
 
 ---
 
-## 八、注意事项
+## Notes
 
-- `jobs` 存在内存里，服务器重启后丢失（Hackathon 够用）
-- Marble API 限速：每分钟最多 6 次 generate 请求，超额返回 429
-- 上传图片大小限制：每张 20 MB
-- `.spz` 文件较大（500k 版约 50-100 MB），`/output` 端点直接静态服务
-- 生成完成后 `remoteUrls` 里有 Marble CDN 的直链，也可以直接用这个 URL 给 PICO 前端加载，不必经过本地服务器
+- `jobs` are stored in memory — lost on server restart (sufficient for hackathon)
+- Marble API rate limit: max 6 generate requests per minute; returns 429 if exceeded
+- Upload size limit: 20 MB per photo
+- `.spz` files are large (500k version ~50-100 MB); `/output` endpoint serves them as static files
+- After generation completes, `remoteUrls` contains direct Marble CDN links — these can be used directly in the PICO frontend without routing through the local server

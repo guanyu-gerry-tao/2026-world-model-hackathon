@@ -1,48 +1,48 @@
-# CityWalk — 技术架构
+# CityWalk — Technical Architecture
 
-> 版本：v0.1 · Hackathon Demo 版
-> 最后更新：2026-03-13
+> Version: v0.1 · Hackathon Demo
+> Last updated: 2026-03-13
 
 ---
 
-## 一、系统总览
+## 1. System Overview
 
 ```mermaid
 flowchart LR
-    subgraph INPUT["📱 输入层 (手机/Web)"]
+    subgraph INPUT["Input Layer (Mobile/Web)"]
         direction TB
-        A1["选择创建方式<br/>A) 城市模板<br/>B) 从头生成"]
-        A2["上传 3–8 张照片"]
-        A3["输入文字描述<br/>（可选）"]
+        A1["Choose creation mode<br/>A) City template<br/>B) From scratch"]
+        A2["Upload 3–8 photos"]
+        A3["Enter text description<br/>(optional)"]
         A1 --> A2 --> A3
     end
 
-    subgraph PROCESS["☁️ 处理层 (云端)"]
+    subgraph PROCESS["Processing Layer (Cloud)"]
         direction TB
-        B1["Nano Banana Pro<br/>(Gemini 3 Pro Image)<br/>──────────────<br/>A) 城市全景图 + 照片 → 融合全景图<br/>B) 多张照片 → 全新 360° 全景图"]
-        B2["World Labs Marble API<br/>marble-0.1-plus<br/>──────────────<br/>全景图 → .spz Gaussian Splat<br/>is_pano: true · ~5min"]
-        B3["Suno / Udio<br/>──────────────<br/>城市氛围描述 → .mp3 背景音乐"]
+        B1["Nano Banana Pro<br/>(Gemini 3 Pro Image)<br/>──────────────<br/>A) City panorama + photos → fused panorama<br/>B) Multiple photos → new 360° panorama"]
+        B2["World Labs Marble API<br/>marble-0.1-plus<br/>──────────────<br/>Panorama → .spz Gaussian Splat<br/>is_pano: true · ~5min"]
+        B3["Suno / Udio<br/>──────────────<br/>City description → .mp3 background music"]
         B1 --> B2
         B1 -.-> B3
     end
 
-    subgraph EXPERIENCE["🥽 体验层 (PICO VR)"]
+    subgraph EXPERIENCE["Experience Layer (PICO VR)"]
         direction TB
-        C1["SplatLoader<br/>加载 .spz 渲染<br/>Gaussian Splat 城市街道"]
-        C2["HotspotManager<br/>近距离检测<br/>墙壁/橱窗/路灯热点"]
-        C3["PhotoPanel<br/>照片 Sprite 淡入浮现"]
-        C4["ParticleSystem<br/>花瓣/光晕粒子 ≤500"]
-        C5["MusicController<br/>背景音乐 + 环境音"]
+        C1["SplatLoader<br/>Load .spz<br/>Render Gaussian Splat city"]
+        C2["HotspotManager<br/>Proximity detection<br/>Wall / window / lamppost hotspots"]
+        C3["PhotoPanel<br/>Photo sprite fade-in"]
+        C4["ParticleSystem<br/>Petals / glow particles ≤500"]
+        C5["MusicController<br/>Background music + ambient audio"]
         C6["WebXR Session<br/>immersive-vr · 6DoF<br/>local-floor"]
         C1 --- C2 --- C3
         C1 --- C4 --- C5
         C6
     end
 
-    subgraph SOCIAL["🌐 社交层 (分享)"]
+    subgraph SOCIAL["Social Layer (Sharing)"]
         direction TB
-        D1["生成可访问 URL"]
-        D2["朋友走进你的城市"]
+        D1["Generate shareable URL"]
+        D2["Friends visit your city"]
         D1 --> D2
     end
 
@@ -55,106 +55,108 @@ flowchart LR
     style SOCIAL fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px,stroke-dasharray: 5 5
 ```
 
-> **Hackathon 简化策略：** 输入层、处理层和社交层（虚线）全部预生成 / fake。Demo 聚焦体验层（粗边框）——评委戴上头显后，走在城市街道上的一切必须是真实运行的。
+> **Hackathon simplification:** The input layer, processing layer, and social layer (dashed) are all pre-generated / faked. The demo focuses entirely on the experience layer (thick border) — everything the judges see after putting on the headset must be real and running live.
 
 ---
 
-## 二、模块分解
+## 2. Module Breakdown
 
-### 2.1 输入层（Hackathon 中跳过）
+### 2.1 Input Layer (skipped for Hackathon)
 
-| 组件 | 说明 | Hackathon 处理 |
-|------|------|----------------|
-| 创建方式选择 | A) 选择城市模板融入照片 B) 从头生成全新世界 | hardcode 默认城市模板 |
-| 照片上传 | 用户从相册选 3–8 张照片 | 预置在项目 `assets/photos/` 中 |
+| Component | Description | Hackathon handling |
+|-----------|-------------|-------------------|
+| Mode selection | A) City template fusion B) Generate from scratch | Hardcoded default city template |
+| Photo upload | User selects 3–8 photos from gallery | Pre-placed in `assets/photos/` |
 
-### 2.2 处理层（Hackathon 中预生成）
+### 2.2 Processing Layer (pre-generated for Hackathon)
 
 ```
-用户照片 (+ 可选城市模板)
+User photos (+ optional city template)
     │
     ▼
 ┌──────────────────────────────────┐
 │  Nano Banana Pro                 │
 │  (Gemini 3 Pro Image)            │
 │                                  │
-│  A) 模板模式：                    │
-│     城市全景图 + 用户照片 → 融合  │
-│     照片嵌入墙壁/橱窗/路灯       │
+│  Mode A (template):              │
+│    City panorama + user photos   │
+│    → photos embedded in walls,   │
+│      windows, lampposts          │
 │                                  │
-│  B) 从头生成：                    │
-│     多张照片 → 全新 360° 全景图   │
-│     照片控制结构，文字控制风格     │
+│  Mode B (from scratch):          │
+│    Multiple photos → new 360°    │
+│    Photos control structure,     │
+│    text controls style           │
 └────────────┬─────────────────────┘
-             │ 全景图 (equirectangular PNG)
+             │ panorama (equirectangular PNG)
              ▼
 ┌─────────────────────────────┐
 │  World Labs Marble API      │
 │  marble-0.1-plus            │
 │  is_pano: true              │
-│  ~5 min 生成                │
+│  ~5 min generation          │
 └────────────┬────────────────┘
              │
      ┌───────┴───────┐
      ▼               ▼
- .spz 文件       .glb 碰撞网格
-(Gaussian Splat)  (可选)
+ .spz file       .glb collision mesh
+(Gaussian Splat)  (optional)
 ```
 
-| 步骤 | 工具 | 输入 | 输出 |
-|------|------|------|------|
-| 全景图生成 | Nano Banana Pro (Gemini 3 Pro Image) | A) 城市全景图 + 照片 B) 纯照片 + 描述 | 360° 全景图 |
-| 世界生成 | Marble API `marble-0.1-plus` | 融合全景图 (`is_pano: true`) | `.spz` (Gaussian Splat) + `.glb` (碰撞网格) |
-| 音乐生成 | Suno / Udio | 城市氛围描述 | `.mp3` 背景音乐 |
+| Step | Tool | Input | Output |
+|------|------|-------|--------|
+| Panorama generation | Nano Banana Pro (Gemini 3 Pro Image) | A) City panorama + photos  B) Photos + description | 360° panorama |
+| World generation | Marble API `marble-0.1-plus` | Fused panorama (`is_pano: true`) | `.spz` (Gaussian Splat) + `.glb` (collision mesh) |
+| Music generation | Suno / Udio | City description | `.mp3` background music |
 
-**Hackathon 处理：** 以上三步全部提前手动完成，产物放入 `assets/` 目录。
+**Hackathon handling:** All three steps are completed manually in advance. Output is placed in `assets/`.
 
-### 2.3 体验层（核心实现）
+### 2.3 Experience Layer (core implementation)
 
-这是 Demo 的全部工程量。运行在 PICO 头显内置浏览器中，零安装。
+This is the entire engineering scope of the demo. Runs inside the PICO headset browser, zero install required.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                 WebXR 应用 (PICO 浏览器)              │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐  │
-│  │              Three.js Scene                    │  │
-│  │                                                │  │
-│  │  ┌──────────────┐  ┌────────────────────────┐ │  │
-│  │  │ Gaussian     │  │ 氛围层                  │ │  │
-│  │  │ Splat 渲染    │  │  · 粒子系统 (花瓣/光晕) │ │  │
-│  │  │ (.spz 加载)  │  │  · 背景音乐 + 环境音    │ │  │
-│  │  └──────────────┘  └────────────────────────┘ │  │
-│  │                                                │  │
-│  │  ┌──────────────┐  ┌────────────────────────┐ │  │
-│  │  │ 热点系统      │  │ 照片浮现面板            │ │  │
-│  │  │ (墙壁/橱窗)  │  │ (Sprite / Plane)       │ │  │
-│  │  │ (近距离触发)  │  │                        │ │  │
-│  │  └──────────────┘  └────────────────────────┘ │  │
-│  └────────────────────────────────────────────────┘  │
-│                                                      │
-│  ┌────────────────────────────────────────────────┐  │
-│  │  WebXR Session (immersive-vr)                  │  │
-│  │  · 6DoF 追踪                                   │  │
-│  │  · Reference Space: local-floor                │  │
-│  └────────────────────────────────────────────────┘  │
+│              WebXR App (PICO browser)               │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │             Three.js Scene                    │  │
+│  │                                               │  │
+│  │  ┌──────────────┐  ┌───────────────────────┐  │  │
+│  │  │ Gaussian     │  │ Atmosphere layer       │  │  │
+│  │  │ Splat render │  │  · Particle system     │  │  │
+│  │  │ (.spz load)  │  │  · Music + ambient     │  │  │
+│  │  └──────────────┘  └───────────────────────┘  │  │
+│  │                                               │  │
+│  │  ┌──────────────┐  ┌───────────────────────┐  │  │
+│  │  │ Hotspot      │  │ Photo reveal panel     │  │  │
+│  │  │ system       │  │ (Sprite / Plane)       │  │  │
+│  │  │ (proximity)  │  │                        │  │  │
+│  │  └──────────────┘  └───────────────────────┘  │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  WebXR Session (immersive-vr)                 │  │
+│  │  · 6DoF tracking                              │  │
+│  │  · Reference space: local-floor               │  │
+│  └───────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 三、目录结构
+## 3. Directory Structure
 
 ```
 citywalk/
 ├── assets/
 │   ├── cities/
 │   │   ├── tokyo-shibuya/
-│   │   │   ├── world.spz          # Gaussian Splat 文件（融合后）
-│   │   │   ├── collision.glb      # 碰撞网格 (可选)
-│   │   │   ├── panorama.png       # 融合全景图 (备用)
-│   │   │   ├── music.mp3          # 城市氛围音乐
-│   │   │   └── config.json        # 热点坐标 + 城市元数据
+│   │   │   ├── world.spz          # Gaussian Splat (fused)
+│   │   │   ├── collision.glb      # Collision mesh (optional)
+│   │   │   ├── panorama.png       # Fused panorama (fallback)
+│   │   │   ├── music.mp3          # City atmosphere music
+│   │   │   └── config.json        # Hotspot coordinates + city metadata
 │   │   └── kyoto-alley/
 │   │       └── ...
 │   └── photos/
@@ -162,36 +164,36 @@ citywalk/
 │       ├── shibuya_002.jpg
 │       └── ...
 ├── src/
-│   ├── main.js                    # 入口：初始化 WebXR Session
+│   ├── main.js                    # Entry: initialize WebXR session
 │   ├── scene/
-│   │   ├── SplatLoader.js         # 加载并渲染 .spz Gaussian Splat
-│   │   ├── ParticleSystem.js      # 花瓣 / 光晕粒子效果
-│   │   └── PhotoPanel.js          # 照片浮现面板 (Sprite 淡入)
+│   │   ├── SplatLoader.js         # Load and render .spz Gaussian Splat
+│   │   ├── ParticleSystem.js      # Petal / glow particle effects
+│   │   └── PhotoPanel.js          # Photo reveal panel (Sprite fade-in)
 │   ├── interaction/
-│   │   ├── HotspotManager.js      # 热点注册 + 近距离检测
-│   │   └── ProximityTrigger.js    # 每帧距离计算逻辑
+│   │   ├── HotspotManager.js      # Hotspot registration + proximity detection
+│   │   └── ProximityTrigger.js    # Per-frame distance calculation
 │   ├── audio/
-│   │   └── MusicController.js     # 背景音乐播放 + 音量渐变
+│   │   └── MusicController.js     # Background music playback + volume fade
 │   └── utils/
-│       └── CoordConverter.js      # 经纬度 → 3D 世界坐标转换
-├── index.html                     # WebXR 入口页面
+│       └── CoordConverter.js      # Lat/lon → 3D world coordinates
+├── index.html                     # WebXR entry page
 ├── package.json
-└── vite.config.js                 # 开发服务器 + 构建配置
+└── vite.config.js                 # Dev server + build config
 ```
 
 ---
 
-## 四、核心数据流
+## 4. Core Data Flow
 
-### 4.1 城市配置文件 (`config.json`)
+### 4.1 City config file (`config.json`)
 
-每个城市的元数据和热点坐标，手动标注后写入：
+Metadata and hotspot coordinates for each city, manually annotated:
 
 ```json
 {
   "id": "tokyo-shibuya",
-  "title": "东京涩谷",
-  "description": "涩谷十字路口的夜晚",
+  "title": "Tokyo Shibuya",
+  "description": "Shibuya crossing at night",
   "splat": "world.spz",
   "music": "music.mp3",
   "hotspots": [
@@ -200,155 +202,154 @@ citywalk/
       "photo": "shibuya_001.jpg",
       "position": { "x": 2.5, "y": 1.5, "z": -3.0 },
       "triggerRadius": 0.5,
-      "label": "涩谷墙壁"
+      "label": "Shibuya wall"
     },
     {
       "id": "shop-window",
       "photo": "shibuya_002.jpg",
       "position": { "x": -1.0, "y": 1.2, "z": 1.5 },
       "triggerRadius": 0.5,
-      "label": "拉面店橱窗"
+      "label": "Ramen shop window"
     }
   ]
 }
 ```
 
-### 4.2 运行时数据流
+### 4.2 Runtime data flow
 
 ```
-每帧循环 (requestAnimationFrame)
+Per-frame loop (requestAnimationFrame)
     │
-    ├─→ 获取 XR 相机位置 (viewer pose)
+    ├─→ Get XR camera position (viewer pose)
     │
     ├─→ HotspotManager.update(playerPosition)
     │       │
-    │       ├─→ 遍历所有热点，计算距离
+    │       ├─→ Iterate all hotspots, compute distance
     │       │
     │       ├─→ distance < triggerRadius?
     │       │       ├── YES → PhotoPanel.fadeIn(photoId)
     │       │       │         MusicController.raiseVolume()
     │       │       └── NO  → PhotoPanel.fadeOut()
     │       │                 MusicController.lowerVolume()
-    │       │
     │
     ├─→ ParticleSystem.update(deltaTime)
-    │       └─→ Y 轴正弦动画 + 随机相位 (花瓣飘落)
+    │       └─→ Y-axis sine animation + random phase (petal drift)
     │
     └─→ renderer.render(scene, camera)
 ```
 
 ---
 
-## 五、技术栈明细
+## 5. Tech Stack
 
-| 层级 | 技术 | 版本/规格 | 用途 |
-|------|------|-----------|------|
-| 运行时 | Three.js | latest | 3D 场景渲染 |
-| WebXR 框架 | SparkJS 2.0 | SensAI Kit | WebXR session 管理 |
-| Splat 渲染 | Three.js Gaussian Splat Loader | - | 加载 `.spz` 文件 |
-| 粒子系统 | Three.js `BufferGeometry` + Points | - | 花瓣 / 光晕，≤500 粒子 |
-| 照片面板 | Three.js `Sprite` / `PlaneGeometry` | - | 淡入动画浮层 |
-| 音频 | Web Audio API | - | 背景音乐 + 环境音播放 |
-| 构建工具 | Vite | latest | 开发服务器 + 打包 |
-| 运行环境 | PICO 4 内置浏览器 | Android WebView | WebXR `immersive-vr` |
-| 备选环境 | Quest 3 浏览器 | - | 现场 Quest 可用 |
+| Layer | Technology | Version / Spec | Purpose |
+|-------|-----------|----------------|---------|
+| Runtime | Three.js | latest | 3D scene rendering |
+| WebXR framework | SparkJS 2.0 | SensAI Kit | WebXR session management |
+| Splat rendering | Three.js Gaussian Splat Loader | - | Load `.spz` files |
+| Particle system | Three.js `BufferGeometry` + Points | - | Petals / glow, ≤500 particles |
+| Photo panel | Three.js `Sprite` / `PlaneGeometry` | - | Fade-in overlay |
+| Audio | Web Audio API | - | Background music + ambient audio |
+| Build tool | Vite | latest | Dev server + bundling |
+| Runtime env | PICO 4 built-in browser | Android WebView | WebXR `immersive-vr` |
+| Fallback env | Quest 3 browser | - | On-site Quest available |
 
-### 预生成工具（不在运行时中）
+### Pre-generation tools (not in runtime)
 
-| 工具 | 用途 |
-|------|------|
-| Nano Banana Pro (Gemini 3 Pro Image) | 模板融合 / 从头生成 360° 全景图 |
-| World Labs Marble API (`marble-0.1-plus`) | 融合全景图 → `.spz` Gaussian Splat |
-| Suno / Udio | 城市氛围 → 背景音乐 |
-
----
-
-## 六、性能约束 (PICO 4)
-
-| 指标 | 目标 | 策略 |
-|------|------|------|
-| 帧率 | ≥ 72 FPS | 粒子数 ≤ 500；无实时光照计算 |
-| 内存 | < 2 GB | 单城市单 `.spz`；照片按需加载 |
-| 加载时间 | < 10s | 资产本地化 / 预缓存 |
-| 网络依赖 | 零 | 所有资产 hardcode，Demo 期间无 API 调用 |
-
----
-
-## 七、关键交互流程
-
-### 7.1 进入城市
-
-```
-用户打开浏览器 URL
-    → index.html 加载
-    → 默认加载东京涩谷
-    → 请求 WebXR immersive-vr session
-    → 加载 .spz + config.json + photos + music
-    → 渲染 Gaussian Splat 城市街道 + 启动粒子系统
-    → 城市环境音 + 音乐淡入
-    → 用户自由行走探索街道
-```
-
-### 7.2 发现记忆（近距离交互）
-
-```
-用户在街道上行走
-    → 每帧检测与各热点的距离
-    → 走近墙壁/橱窗热点 (< 0.5m)
-        → 嵌入的照片从模糊变清晰
-        → 原始高清照片以 Sprite 浮现
-        → 音乐音量渐强
-    → 离开热点 (> 1.0m)
-        → 照片淡出
-        → 音乐回归基础音量
-```
-
----
-
-## 八、开发计划 (实际 ~14h)
-
-> **现实约束：** Day 2 主要是调试、录视频、social 和颁奖，几乎没有开发时间。所有核心功能必须在 Day 1 完成。非必要功能全部 fake。
-
-### Day 1 — 周六（唯一开发日）
-
-| 时段 | 任务 | 产出 |
-|------|------|------|
-| 9:00–11:00 | 项目脚手架：Vite + Three.js + WebXR + SparkJS | 可运行的空 WebXR 场景 |
-| 11:00–14:00 | `SplatLoader.js`：加载预生成 `.spz` 并渲染 | 头显中可见城市街道 |
-| 14:00–17:00 | `HotspotManager.js` + `PhotoPanel.js`：近距离触发 + 照片浮现 | 走近墙壁/橱窗时照片淡入 |
-| 17:00–19:00 | `ParticleSystem.js`：花瓣/光晕粒子效果 | 粒子漂浮在街道中 |
-| 19:00–23:00 | `MusicController.js`：音乐播放 + 整体联调 | 完整体验闭环 |
-
-### Day 2 — 周日（调试 + 提交）
-
-| 时段 | 任务 |
-|------|------|
-| 8:00–10:00 | PICO 实机测试 + Bug 修复 |
-| 10:00–12:00 | 最终调参 + 录制 45s Demo 视频 |
-| **13:00** | **提交截止** |
-| 14:00–17:00 | 评审 + Showcase + 颁奖 |
-
-### 砍掉 / Fake 的功能
-
-| 功能 | 处理方式 |
+| Tool | Purpose |
 |------|---------|
-| 多城市模板选择 | 砍掉，hardcode 默认加载东京涩谷 |
-| 手机端上传照片 | Pitch 口头说明 |
-| Gemini 实时融合照片到城市 | 融合全景图提前生成好 |
-| Marble API 实时生成世界 | `.spz` 提前跑好，hardcode |
-| VLM 自动热点定位 | 手动走一遍后写死坐标 |
-| 社交分享 / 互相拜访 | 架构图 + 口头 pitch |
-| 用户账号 / 云存储 | 架构图口头描述 |
-| AI 音乐实时生成 | 音频文件提前生成，静态加载 |
+| Nano Banana Pro (Gemini 3 Pro Image) | Template fusion / generate 360° panorama from scratch |
+| World Labs Marble API (`marble-0.1-plus`) | Fused panorama → `.spz` Gaussian Splat |
+| Suno / Udio | City atmosphere → background music |
 
 ---
 
-## 九、风险缓解
+## 6. Performance Targets (PICO 4)
 
-| 风险 | 应对 |
+| Metric | Target | Strategy |
+|--------|--------|---------|
+| Frame rate | ≥ 72 FPS | Particles ≤ 500; no real-time lighting |
+| Memory | < 2 GB | Single `.spz` per city; photos loaded on demand |
+| Load time | < 10s | Assets local / pre-cached |
+| Network dependency | Zero | All assets hardcoded, no API calls during demo |
+
+---
+
+## 7. Key Interaction Flows
+
+### 7.1 Entering the city
+
+```
+User opens browser URL
+    → index.html loads
+    → Default city (Tokyo Shibuya) loaded
+    → Request WebXR immersive-vr session
+    → Load .spz + config.json + photos + music
+    → Render Gaussian Splat city + start particle system
+    → Ambient audio + music fade in
+    → User freely walks and explores
+```
+
+### 7.2 Discovering a memory (proximity interaction)
+
+```
+User walks down the street
+    → Per-frame distance check against all hotspots
+    → Approaches wall / window hotspot (< 0.5m)
+        → Embedded photo sharpens from blur
+        → Original hi-res photo appears as Sprite overlay
+        → Music volume rises
+    → Leaves hotspot (> 1.0m)
+        → Photo fades out
+        → Music returns to base volume
+```
+
+---
+
+## 8. Development Schedule (~14h total)
+
+> **Reality constraint:** Day 2 is mostly debugging, video recording, social, and awards. All core features must be done on Day 1. Non-essential features are all faked.
+
+### Day 1 — Saturday (the only real dev day)
+
+| Time | Task | Deliverable |
+|------|------|-------------|
+| 9:00–11:00 | Project scaffold: Vite + Three.js + WebXR + SparkJS | Empty WebXR scene running |
+| 11:00–14:00 | `SplatLoader.js`: load and render pre-generated `.spz` | City street visible in headset |
+| 14:00–17:00 | `HotspotManager.js` + `PhotoPanel.js`: proximity trigger + photo reveal | Photo fade-in when approaching wall/window |
+| 17:00–19:00 | `ParticleSystem.js`: petal/glow particle effects | Particles floating in street |
+| 19:00–23:00 | `MusicController.js`: music playback + full integration | Complete experience loop |
+
+### Day 2 — Sunday (debug + submit)
+
+| Time | Task |
 |------|------|
-| SparkJS 在 PICO 上渲染 `.spz` 性能不足 | 降低 Splat 分辨率；减少粒子数；必要时切 Quest 3 |
-| WebXR session 在 PICO 浏览器中不启动 | 提前测试；备用方案：Quest 3 浏览器（主办方提供） |
-| 融合全景图质量差（照片嵌入不自然） | 多组 Prompt 预生成多版本，选最佳 |
-| 热点位置与城市场景不匹配 | 世界生成后实际走一遍，手动微调坐标 |
-| Demo 现场崩溃 | 零网络依赖、零实时 API、所有资产 hardcode |
+| 8:00–10:00 | PICO device testing + bug fixes |
+| 10:00–12:00 | Final tuning + record 45s demo video |
+| **1:00 PM** | **Submission deadline** |
+| 2:00–5:00 PM | Judging + Showcase + Awards |
+
+### Cut / Faked Features
+
+| Feature | Handling |
+|---------|---------|
+| Multi-city template selection | Cut — hardcode default Tokyo Shibuya |
+| Mobile photo upload | Mentioned verbally during pitch |
+| Real-time Gemini photo fusion | Fused panorama pre-generated |
+| Real-time Marble world generation | `.spz` pre-generated and hardcoded |
+| VLM auto hotspot positioning | Manual coordinate annotation after walkthrough |
+| Social sharing / visiting | Architecture diagram + verbal pitch |
+| User accounts / cloud storage | Architecture diagram verbal description |
+| AI music real-time generation | Audio file pre-generated, static load |
+
+---
+
+## 9. Risk Mitigation
+
+| Risk | Mitigation |
+|------|-----------|
+| SparkJS `.spz` render performance insufficient on PICO | Lower splat resolution; reduce particle count; fall back to Quest 3 if needed |
+| WebXR session fails to start in PICO browser | Pre-test on device; fallback: Quest 3 browser (provided by organizers) |
+| Fused panorama quality poor (photos look unnatural) | Pre-generate multiple prompt variations, pick the best |
+| Hotspot positions don't match the city scene | Walk through generated world after creation, manually fine-tune coordinates |
+| Demo crashes on-site | Zero network dependency, zero real-time API calls, all assets hardcoded |
