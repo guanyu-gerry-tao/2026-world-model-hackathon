@@ -1,0 +1,18 @@
+{
+  "name": "citywalk",
+  "version": "0.1.0",
+  "description": "CityWalk — Walk into a city, leave your memory",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.170.0",
+    "@mkkellogg/gaussian-splats-3d": "^0.4.6"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
