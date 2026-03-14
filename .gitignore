@@ -80,3 +80,6 @@ build/
 
 # Keep .gitkeep files
 !.gitkeep
+
+# Internal / Chinese drafts (local only)
+INTERNAL/

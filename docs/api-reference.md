@@ -1,25 +1,25 @@
-# API 参考文档
+# API Reference
 
-> 最后更新：2026-03-13
+> Last updated: 2026-03-13
 
 ---
 
-## 一、World Labs Marble API
+## 1. World Labs Marble API
 
-### 基本信息
+### Basic Info
 
-- **Base URL：** `https://api.worldlabs.ai/marble/v1`
-- **认证方式：** 请求 Header 中加 `WLT-Api-Key: YOUR_API_KEY`
-- **Content-Type：** `application/json`
+- **Base URL:** `https://api.worldlabs.ai/marble/v1`
+- **Authentication:** Add `WLT-Api-Key: YOUR_API_KEY` to request headers
+- **Content-Type:** `application/json`
 
-### 模型选择
+### Model Selection
 
-| 模型 | 用途 | 生成时间 | 费用 |
-|------|------|----------|------|
-| `Marble 0.1-plus` | 高质量，Demo 用 | ~5 分钟 | 1500–1600 credits |
-| `Marble 0.1-mini` | 快速草稿，测试用 | 30–45 秒 | 150–330 credits |
+| Model | Use case | Generation time | Cost |
+|-------|---------|-----------------|------|
+| `Marble 0.1-plus` | High quality, use for demo | ~5 minutes | 1500–1600 credits |
+| `Marble 0.1-mini` | Quick drafts, testing | 30–45 seconds | 150–330 credits |
 
-### Step 1：上传媒体文件
+### Step 1: Upload media file
 
 ```http
 POST /marble/v1/media-assets:prepare_upload
@@ -29,7 +29,7 @@ Content-Type: application/json
 {}
 ```
 
-返回：
+Returns:
 ```json
 {
   "upload_url": "https://storage.googleapis.com/...",
@@ -37,9 +37,9 @@ Content-Type: application/json
 }
 ```
 
-然后 PUT 图片到 `upload_url`（直接上传二进制，Content-Type: image/png）。
+Then PUT the image to `upload_url` (upload raw binary, Content-Type: image/png).
 
-### Step 2：生成世界
+### Step 2: Generate world
 
 ```http
 POST /marble/v1/worlds:generate
@@ -59,7 +59,7 @@ Content-Type: application/json
 }
 ```
 
-返回：
+Returns:
 ```json
 {
   "operation_id": "op_xyz789",
@@ -67,21 +67,21 @@ Content-Type: application/json
 }
 ```
 
-> `is_pano: true`：告诉 Marble 输入是等距柱状投影全景图（360°），精度更高。
+> `is_pano: true` tells Marble the input is an equirectangular panorama (360°), enabling higher spatial accuracy.
 
-### Step 3：轮询状态
+### Step 3: Poll status
 
 ```http
 GET /marble/v1/operations/{operation_id}
 WLT-Api-Key: YOUR_KEY
 ```
 
-- `done: false` → 继续等待（建议每 15 秒轮询一次）
-- `done: true` → 生成完成
+- `done: false` → keep waiting (recommended poll interval: every 15 seconds)
+- `done: true` → generation complete
 
-### Step 4：获取下载链接
+### Step 4: Get download links
 
-生成完成后响应体包含：
+When complete, the response body includes:
 
 ```json
 {
@@ -106,33 +106,33 @@ WLT-Api-Key: YOUR_KEY
 }
 ```
 
-### 限制
+### Limits
 
-- 速率限制：每分钟最多 6 次 generate 请求（429 = 超额）
-- Demo 使用 `500k` 分辨率的 `.spz`，平衡质量与 PICO 性能
+- Rate limit: max 6 generate requests per minute (429 = exceeded)
+- Use `500k` resolution `.spz` for demo — balances quality and PICO performance
 
 ---
 
-## 二、Nano Banana Pro（Google Gemini 图像生成）
+## 2. Nano Banana Pro (Google Gemini Image Generation)
 
-### 基本信息
+### Basic Info
 
-- **"Nano Banana Pro"** = Gemini 3 Pro Image 的官方昵称
-- **SDK：** `@google/genai`（注意不是 `@google/generative-ai`）
-- **认证：** 环境变量 `GEMINI_API_KEY`
+- **"Nano Banana Pro"** = official nickname for Gemini 3 Pro Image
+- **SDK:** `@google/genai` (not `@google/generative-ai`)
+- **Authentication:** Environment variable `GEMINI_API_KEY`
 
 ```bash
 npm install @google/genai
 ```
 
-### 模型选项
+### Model Options
 
-| 模型名 | 昵称 | 质量 | 速度 |
-|--------|------|------|------|
-| `gemini-3-pro-image` | Nano Banana Pro | 最高 | 慢 |
-| `gemini-3.1-flash-image-preview` | Nano Banana 2 | 高 | 快（8–12s） |
+| Model name | Nickname | Quality | Speed |
+|-----------|---------|---------|-------|
+| `gemini-3-pro-image` | Nano Banana Pro | Highest | Slow |
+| `gemini-3.1-flash-image-preview` | Nano Banana 2 | High | Fast (8–12s) |
 
-### 调用示例：多图 → 全景图
+### Example: multiple photos → panorama
 
 ```javascript
 import { GoogleGenAI } from "@google/genai";
@@ -140,7 +140,6 @@ import fs from "node:fs";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// 读取用户照片
 const photos = ["photo1.jpg", "photo2.jpg"].map(f => ({
   inlineData: {
     mimeType: "image/jpeg",
@@ -152,17 +151,17 @@ const response = await ai.models.generateContent({
   model: "gemini-3.1-flash-image-preview",
   contents: [
     {
-      text: `你是一个全景图生成专家。
-请将这些照片自然融合成一张 360° 等距柱状投影全景图（equirectangular panorama）。
-场景风格：东京涩谷夜晚街道。
-要求：宽高比 2:1，照片作为场景元素嵌入（墙上海报、橱窗展示、路灯装饰）。
-输出：仅输出图片，无文字。`
+      text: `You are an expert panorama compositor.
+Naturally fuse these photos into a single 360° equirectangular panorama.
+Scene style: Tokyo Shibuya at night.
+Requirements: 2:1 aspect ratio, photos embedded as scene elements (wall posters, shop windows, lamppost decorations).
+CRITICAL: Remove ALL human figures and faces from the entire output — no people, no crowds, no silhouettes.
+Output: image only, no text.`
     },
     ...photos
   ]
 });
 
-// 保存图片
 for (const part of response.candidates[0].content.parts) {
   if (part.inlineData) {
     const buffer = Buffer.from(part.inlineData.data, "base64");
@@ -171,75 +170,95 @@ for (const part of response.candidates[0].content.parts) {
 }
 ```
 
-### 模式 A（城市模板 + 照片融合）
+### Mode A (city template + photo fusion)
 
 ```
-Prompt 方向：
-- 提供城市街道模板全景图（base image）
-- 提供用户照片（3–8 张）
-- 要求：将照片嵌入城市场景的自然位置
-  · 左侧墙壁：照片 1
-  · 正前方橱窗：照片 2
-  · 右侧路灯下：照片 3
-- 保持城市全景图的整体风格和透视
+Prompt direction:
+- Provide city street template panorama (base image)
+- Provide user photos (3–8)
+- Task: embed photos into natural positions in the city scene
+  · Left wall: photo 1
+  · Front window: photo 2
+  · Right lamppost: photo 3
+- Maintain the city panorama's overall style and perspective
+- CRITICAL: remove ALL human figures and faces everywhere
 ```
 
-### 模式 B（纯照片 → 全新世界）
+### Mode B (photos only → new world)
 
 ```
-Prompt 方向：
-- 仅提供用户照片 + 一句描述
-- 要求：从零生成全新 360° 全景图
-- 照片控制空间结构和视觉元素
-- 文字描述控制整体风格和氛围
+Prompt direction:
+- Provide only user photos + one-line description
+- Task: generate a brand-new 360° panorama from scratch
+- Photos control spatial structure and visual elements
+- Text description controls overall style and atmosphere
+- CRITICAL: remove ALL human figures and faces everywhere
 ```
 
-### 注意事项
+### Human figure removal (critical)
 
-- Gemini **不原生支持**真正的 360° 球面全景图生成
-- 输出是普通宽幅图片（2:1 比例），需要作为 equirectangular 传入 Marble
-- Marble 的 `is_pano: true` 会正确处理 2:1 比例图片作为全景图
+Both modes must include this instruction in the prompt:
+
+```
+CRITICAL: Remove ALL human figures and faces from the entire scene — no people,
+no crowds, no silhouettes, no body parts. Replace with environmental elements
+(lights, signs, objects, textures).
+
+When processing user photos: if a photo contains people or faces, extract ONLY
+the non-human elements — landscapes, animals, plants, architecture, sky, ground,
+water, objects. Discard all human subjects entirely.
+A group photo at a beach becomes just the beach.
+A selfie in front of a temple becomes just the temple.
+```
+
+> **Why:** Gaussian Splat renders human figures as ghostly blurry shapes — extremely uncanny and disturbing in VR. Removing all people at the panorama generation stage prevents this entirely.
+
+### Notes
+
+- Gemini does **not** natively generate true spherical 360° panoramas
+- Output is a wide-format image (2:1 ratio) treated as equirectangular and passed into Marble
+- Marble's `is_pano: true` correctly handles 2:1 images as panoramas
 
 ---
 
-## 三、Pipeline 完整流程
+## 3. Full Pipeline Flow
 
 ```
-用户照片（input/photos/）
+User photos (input/photos/)
       │
       ▼
 [Step 1] Gemini API
-  · 模式 A：城市模板 + 照片 → 融合全景图
-  · 模式 B：照片 + 描述 → 全新全景图
+  · Mode A: city template + photos → fused panorama
+  · Mode B: photos + description → new panorama
       │
-      ▼ panorama.png（2:1，equirectangular）
+      ▼  panorama.png (2:1, equirectangular)
       │
-[Step 2] Marble API - 上传
-  · prepare_upload → 获取 signed URL
-  · PUT panorama.png 到 signed URL
+[Step 2] Marble API — Upload
+  · prepare_upload → get signed URL
+  · PUT panorama.png to signed URL
       │
-      ▼ image_url
+      ▼  image_url
       │
-[Step 3] Marble API - 生成
-  · POST worlds:generate（is_pano: true, model: Marble 0.1-plus）
-  · 返回 operation_id
+[Step 3] Marble API — Generate
+  · POST worlds:generate (is_pano: true, model: Marble 0.1-plus)
+  · Returns operation_id
       │
-      ▼ 轮询（每15s）
+      ▼  poll every 15s
       │
-[Step 4] Marble API - 下载
-  · done: true → 获取 spz_urls.500k
-  · 下载 .spz 到 citywalk/assets/cities/tokyo-shibuya/world.spz
+[Step 4] Marble API — Download
+  · done: true → get spz_urls.500k
+  · Download .spz to citywalk/assets/cities/tokyo-shibuya/world.spz
       │
       ▼
 citywalk/assets/cities/tokyo-shibuya/
-  ├── world.spz       ← Gaussian Splat（PICO 渲染用）
-  ├── panorama.png    ← 融合全景图（备用）
-  └── config.json     ← 热点坐标（手动标注）
+  ├── world.spz       ← Gaussian Splat (for PICO rendering)
+  ├── panorama.png    ← Fused panorama (fallback)
+  └── config.json     ← Hotspot coordinates (manually annotated)
 ```
 
 ---
 
-## 四、环境变量
+## 4. Environment Variables
 
 ```bash
 # .env
@@ -249,10 +268,10 @@ MARBLE_API_KEY=your_worldlabs_key
 
 ---
 
-## 五、参考链接
+## 5. Reference Links
 
-- Marble API 文档：https://docs.worldlabs.ai/api
-- Marble 导出说明：https://docs.worldlabs.ai/marble/export/gaussian-splat/unreal
-- Gemini 图像生成：https://ai.google.dev/gemini-api/docs/image-generation
-- Gemini 模型列表：https://ai.google.dev/gemini-api/docs/models
-- Nano Banana API：https://nanobananaapi.ai/
+- Marble API docs: https://docs.worldlabs.ai/api
+- Marble export docs: https://docs.worldlabs.ai/marble/export/gaussian-splat/unreal
+- Gemini image generation: https://ai.google.dev/gemini-api/docs/image-generation
+- Gemini model list: https://ai.google.dev/gemini-api/docs/models
+- Nano Banana API: https://nanobananaapi.ai/

@@ -1,116 +1,116 @@
-# CityWalk — 项目提案
-> *走进一座城市，留下你的记忆。*
+# CityWalk — Project Proposal
+> *Walk into a city. Leave your memories behind.*
 
-**活动：** Worlds in Action Hack San Francisco · 2026年3月14–15日
-**地点：** Founders Inc. · 主办方：SensAI Hackademy
-**参赛赛道：** Best Filmmaking, Entertainment & Simulation App · Best World Models Implementation with PICO
-
----
-
-## 一、问题陈述
-
-你去过东京、巴黎、京都，拍了一堆照片。然后呢？照片躺在相册里，城市变成了一个名字。
-
-现有的记忆类应用，要么是把照片做成立体视差效果供你观看（ScopeVR、immerGallery），要么是在拍摄时用 LiDAR 传感器实时采集3D信息，供你事后重游（Wist）。这两种方式都没有解决核心问题：**你的记忆和那座城市之间缺少联系。**
-
-CityWalk 的立场：**记忆不该独立存在，它应该长在城市里。**
+**Event:** Worlds in Action Hack San Francisco · March 14–15, 2026
+**Venue:** Founders Inc. · Organizer: SensAI Hackademy
+**Tracks:** Best Filmmaking, Entertainment & Simulation App · Best World Models Implementation with PICO
 
 ---
 
-## 二、核心概念
+## 1. Problem Statement
 
-CityWalk 有两种创建方式：
+You've been to Tokyo, Paris, Kyoto. You took a hundred photos. Then what? The photos sit in your camera roll, and the city becomes just a name.
 
-**模式 A — 城市模板 + 记忆融合（主打）**
-选择一个预制城市街道（如东京涩谷、京都小巷），上传自己的照片，照片被自然嵌入街道场景中——贴在墙壁上、浮现在橱窗里、悬挂在路灯下。每个人对同一座城市的记忆不同，生成的世界也不同。
+Existing memory apps either turn photos into parallax 3D effects for passive viewing (ScopeVR, immerGallery), or require you to record scenes in real-time with LiDAR to revisit them later (Wist). Neither solves the core problem: **your memories have no connection to the city itself.**
 
-**模式 B — 从头生成**
-不选模板，直接上传照片 + 一句描述，AI 从零生成一个全新世界。适合没有对应城市模板的场景，或者想要完全个性化的体验。
-
-两种模式生成的世界都可以被其他人拜访。
-
-**社交性是核心：**
-- 你可以创建「我的东京」，朋友可以来逛
-- 同一条街道，不同人的版本完全不同
-- 城市是共享的，记忆是私人的，体验是社交的
-
-> "不是把照片放进一个空间，而是把记忆种进一座城市。"
+CityWalk's position: **memories shouldn't exist in isolation — they should live inside cities.**
 
 ---
 
-## 三、差异化分析
+## 2. Core Concept
 
-| | CityWalk | Wist | Memory House（World Labs） | ScopeVR |
+CityWalk offers two creation modes:
+
+**Mode A — City Template + Memory Fusion (primary)**
+Choose a pre-built city street (Tokyo Shibuya, Kyoto alley), upload your photos, and they are naturally embedded into the scene — posted on walls, appearing in shop windows, hanging from lampposts. Same city, different memories for every person.
+
+**Mode B — Generate from Scratch**
+Skip the template. Upload photos + a one-line description, and AI builds an entirely new world from nothing. For places that don't have a city template yet, or when you want a fully personalized experience.
+
+Worlds created in either mode can be visited by other people.
+
+**Social is core:**
+- You create "my Tokyo" — friends can come walk through it
+- Same street, completely different versions for different people
+- The city is shared, the memories are personal, the experience is social
+
+> "Not putting photos in a space, but planting memories inside a city."
+
+---
+
+## 3. Competitive Analysis
+
+| | CityWalk | Wist | Memory House (World Labs) | ScopeVR |
 |---|---|---|---|---|
-| 输入 | 任意旧照片（可选城市模板或从头生成） | 必须用 App 实时录制 | 艺术家手工策划 | 现有照片/视频 |
-| 处理方式 | 照片融入城市 / 照片直接生成世界 | LiDAR 3D 重建原始场景 | Marble Composer 手动拼接 | 深度估计 |
-| 输出 | 承载个人记忆的可分享世界 | 还原原始场景 | 固定叙事艺术装置 | 立体照片展示 |
-| 社交性 | ✅ 互相拜访彼此的城市 | ❌ 个人独享 | ❌ 艺术家作品 | ❌ 个人独享 |
-| 使用 World Model | ✅ Marble API | ❌ | ✅ Marble Composer（仅 UI） | ❌ |
-| 支持旧照片 | ✅ | ❌ | ✅ | ✅ |
-| 可行走 VR | ✅ PICO | ✅ Quest | ✅（浏览器） | ✅ Quest |
+| Input | Any existing photos (+ optional city template or generate from scratch) | Must record with app in real-time | Artist-curated, hand-assembled | Existing photos/video |
+| Processing | Photos fused into city / photos generate world | LiDAR 3D reconstruction of original scene | Marble Composer manual assembly | Depth estimation |
+| Output | Shareable world carrying personal memories | Reconstruction of original scene | Fixed narrative art installation | Stereoscopic photo viewer |
+| Social | ✅ Visit each other's cities | ❌ Personal only | ❌ Artist's work | ❌ Personal only |
+| Uses World Model | ✅ Marble API | ❌ | ✅ Marble Composer (UI only) | ❌ |
+| Supports old photos | ✅ | ❌ | ✅ | ✅ |
+| Walkable VR | ✅ PICO | ✅ Quest | ✅ (browser) | ✅ Quest |
 
-**核心洞察：** 其他产品让你看自己的照片。CityWalk 让你走进别人的城市，看到他们的记忆。这是一个社交平台，不是一个相册工具。
+**Core insight:** Other products let you look at your own photos. CityWalk lets you walk through someone else's city and see their memories. It's a social platform, not a photo album.
 
 ---
 
-## 四、完整技术管道
+## 4. Full Technical Pipeline
 
 ```
-第一步 — 选择创建方式
-  A) 城市模板：选择预制城市（如东京涩谷），上传照片融入
-  B) 从头生成：上传照片 + 一句描述，AI 直接生成世界
+Step 1 — Choose creation mode
+  A) City template: select a pre-built city (e.g., Tokyo Shibuya), upload photos to fuse
+  B) From scratch: upload photos + one-line description, AI generates the world
 
-第二步 — 上传照片
-用户上传个人照片（建议3–8张）
-  模板模式例：「2019年在东京拍的照片」
-  从头生成例：「2019年和大学朋友在京都的夏天」
+Step 2 — Upload photos
+User uploads personal photos (3–8 recommended)
+  Template example: "Photos I took in Tokyo in 2019"
+  From scratch example: "Summer in Kyoto with college friends, 2019"
 
-第三步 — 全景图生成
+Step 3 — Panorama generation
 Nano Banana Pro (Google Gemini 3 Pro Image)
-  A) 模板模式：城市全景图 + 用户照片 → 融合全景图
-     照片自然嵌入城市场景（墙壁海报、橱窗展示、路灯悬挂）
-  B) 从头生成：多张照片 → 全新 360° 超现实全景图
-     照片控制空间结构，文字描述控制视觉风格
+  A) Template mode: city panorama + user photos → fused panorama
+     Photos naturally embedded in city scene (wall posters, shop windows, lamppost decorations)
+  B) From scratch: multiple photos → new 360° surreal panorama
+     Photos control spatial structure, text description controls visual style
 
-第四步 — 世界生成
+Step 4 — World generation
 World Labs Marble API
-  输入：全景图（is_pano: true）
-  输出：Gaussian Splat（.spz）
+  Input: panorama (is_pano: true)
+  Output: Gaussian Splat (.spz)
 
-第五步 — VR 体验（PICO 头显）
-WebXR（SparkJS 2.0 / Three.js）
-  渲染 Gaussian Splat
-  叠加粒子系统（花瓣 / 光晕）
-  近距离触发交互 → 原始照片浮现
-  背景音乐 + 环境音
+Step 5 — VR experience (PICO headset)
+WebXR (SparkJS 2.0 / Three.js)
+  Render Gaussian Splat
+  Overlay particle system (petals / glow)
+  Proximity trigger interaction → original photos reveal
+  Background music + ambient audio
 ```
 
 ---
 
-## 五、技术栈
+## 5. Tech Stack
 
-| 层级 | 技术 | 备注 |
-|------|------|------|
-| 图像融合 | Nano Banana Pro (Gemini 3 Pro Image) | 模板融合 / 从头生成 360° 全景图 |
-| 世界生成 | World Labs Marble API `marble-0.1-plus` | `is_pano: true` 空间精度最高 |
-| 渲染引擎 | SparkJS 2.0 + Three.js + WebXR | 跑在 PICO 内置浏览器，无需安装 App |
-| 粒子效果 | Three.js `BufferGeometry` Points | 最多 ~500 粒子，保证 PICO 帧率 |
-| 交互触发 | 近距离检测（Proximity） | 每帧检测玩家位置与热点距离 |
-| 照片浮现 | Three.js `Sprite` / `PlaneGeometry` | 淡入动画浮层面板 |
-| 背景音乐 | Suno / Udio API | 按城市氛围预生成 |
-| 运行平台 | PICO 4 头显 | 独立 Android 设备，无需连接电脑 |
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Image fusion | Nano Banana Pro (Gemini 3 Pro Image) | Template fusion / generate 360° panorama from scratch |
+| World generation | World Labs Marble API `marble-0.1-plus` | `is_pano: true` for highest spatial accuracy |
+| Render engine | SparkJS 2.0 + Three.js + WebXR | Runs in PICO built-in browser, no app install |
+| Particle effects | Three.js `BufferGeometry` Points | Max ~500 particles, maintains PICO frame rate |
+| Interaction trigger | Proximity detection | Per-frame player position vs hotspot distance check |
+| Photo reveal | Three.js `Sprite` / `PlaneGeometry` | Fade-in animated overlay panel |
+| Background music | Suno / Udio API | Pre-generated per city atmosphere |
+| Target platform | PICO 4 headset | Standalone Android device, no PC required |
 
 ---
 
-## 六、交互设计
+## 6. Interaction Design
 
-### 核心交互：在街道上发现记忆
+### Core interaction: discovering memories on the street
 
-用户走在城市街道上。当走近某面墙壁、某个橱窗、某盏路灯时，嵌入其中的照片从模糊变清晰，原始高清照片在眼前浮现。交互是空间性的、具身的——你不是在操作界面，你是在城市里偶遇记忆。
+The user walks down a city street. Approaching a wall, a shop window, or a lamppost causes the photo embedded there to sharpen from a blur — the original hi-res photo appears in front of them. The interaction is spatial and embodied: you're not operating a UI, you're encountering memories in a city.
 
 ```javascript
-// 每帧检测
+// Per-frame check
 const distance = player.position.distanceTo(hotspot.position)
 if (distance < 0.5) {
     fadeInPhoto(hotspot.photoId)
@@ -122,34 +122,34 @@ if (distance > 1.0) {
 }
 ```
 
-### 热点坐标系统
+### Hotspot coordinate system
 
-全景图是等距柱状投影，坐标系为经纬度：
-- 水平方向：0°–360°（yaw）
-- 垂直方向：-90°–90°（pitch）
+The panorama is in equirectangular projection, coordinates in lat/lon:
+- Horizontal: 0°–360° (yaw)
+- Vertical: -90°–90° (pitch)
 
-**Hackathon 版本（手动）：** 走完预生成的世界，人工标注哪个区域对应哪张照片，手写热点坐标。
+**Hackathon version (manual):** Walk through the pre-generated world, manually annotate which area corresponds to which photo, hard-code hotspot coordinates.
 
-**完整产品版本：**
+**Full product version:**
 
-第一步：Gemini Prompt 主动定义照片在城市中的嵌入位置
+Step 1: Gemini prompt actively defines where each photo is embedded in the city
 ```
-左侧墙壁：照片1（涩谷十字路口自拍）
-正前方橱窗：照片2（拉面店）
-右侧路灯下：照片3（夜景）
+Left wall: photo 1 (Shibuya crossing selfie)
+Front window: photo 2 (ramen shop)
+Right lamppost: photo 3 (night view)
 ```
 
-第二步：VLM（Claude / GPT-4V）分析生成的全景图，返回热点坐标 JSON
+Step 2: VLM (Claude / GPT-4V) analyzes the generated panorama, returns hotspot coordinate JSON
 ```json
 {
   "hotspots": [
-    { "photo_id": "shibuya_001.jpg", "yaw": 45, "pitch": -10, "label": "涩谷墙壁" },
-    { "photo_id": "ramen_002.jpg", "yaw": 180, "pitch": 0, "label": "拉面店橱窗" }
+    { "photo_id": "shibuya_001.jpg", "yaw": 45, "pitch": -10, "label": "Shibuya wall" },
+    { "photo_id": "ramen_002.jpg", "yaw": 180, "pitch": 0, "label": "Ramen shop window" }
   ]
 }
 ```
 
-第三步：坐标换算为 3D 世界坐标
+Step 3: Convert to 3D world coordinates
 ```javascript
 const x = Math.cos(pitch) * Math.sin(yaw) * radius
 const y = Math.sin(pitch) * radius
@@ -158,142 +158,145 @@ const z = Math.cos(pitch) * Math.cos(yaw) * radius
 
 ---
 
-## 七、氛围层
+## 7. Atmosphere Layer
 
-**粒子效果（路灯光晕 / 花瓣飘落）：**
-- `BufferGeometry` 随机分布粒子位置
-- Y 轴正弦动画模拟漂浮
-- 城市主题化：东京用樱花花瓣，巴黎用光点
-- 性能目标：≤500 粒子，保持 PICO 稳定帧率
+**Particle effects (lamppost glow / petal drift):**
+- `BufferGeometry` with random particle positions
+- Y-axis sine animation simulating float
+- City-themed: Tokyo uses cherry blossom petals, Paris uses light points
+- Performance target: ≤500 particles, stable PICO frame rate
 
-**背景音乐 + 环境音：**
-- 城市环境音底层（街道人声、远处车流）
-- 走近热点时音量渐强，个性化配乐淡入
-- 每个城市一首专属配乐，匹配城市氛围
+**Background music + ambient audio:**
+- City ambient layer underneath (street sounds, distant traffic)
+- Volume rises when approaching hotspots, personalized score fades in
+- One unique soundtrack per city, matching city atmosphere
 
 ---
 
-## 八、完整产品架构
+## 8. Full Product Architecture
 
 ```
-手机端（输入）              云端（处理）                 PICO 头显（体验）
+Mobile (input)              Cloud (processing)               PICO headset (experience)
 
-选择城市模板          →   Gemini 融合照片到城市全景   →   WebXR 加载 .spz
-从相册选照片                    ↓
-                          Marble 生成个性化世界          渲染 Gaussian Splat
-                                ↓
-                          .spz 存入用户账号              粒子系统叠加
-                                ↓
-分享链接给朋友        ←   生成可访问的世界 URL      →   朋友走进你的城市
-                                                        照片浮现
-                                                        音乐响起
+Choose city template   →   Gemini fuses photos into city   →   WebXR loads .spz
+Select photos from              panorama
+gallery                             ↓
+                            Marble generates                    Render Gaussian Splat
+                            personalized world
+                                    ↓
+                            .spz stored in                      Particle overlay
+                            user account
+                                    ↓
+Share link with friends ←  Generate shareable world URL  →   Friends walk through your city
+                                                              Photos reveal
+                                                              Music plays
 ```
 
-**商业价值：**
-- 城市模板可以做成 IP 合作（品牌街道、景区数字孪生）
-- UGC 世界可以收费访问
-- 城市 × 记忆 = 无限内容，用户自己生产
+**Business value:**
+- City templates as IP partnerships (brand streets, landmark digital twins)
+- UGC worlds as paid access
+- City × memory = infinite content, user-generated
 
 ---
 
-## 九、竞争壁垒
+## 9. Competitive Moat
 
-**对比 Wist：** Wist 依赖 LiDAR 传感器实时采集，只支持拍摄当下的场景。CityWalk 的输入是任意照片，2003年用胶卷拍的旅行照同样有效。
+**vs. Wist:** Wist depends on real-time LiDAR capture — it only works for scenes you're recording right now. CityWalk accepts any photo; a travel roll from 2003 shot on film works just as well.
 
-**对比 Memory House：** Memory House 是艺术家的固定装置，用户无法创作自己的版本。CityWalk 是一个平台，每个人都能在同一座城市里留下自己的记忆。
+**vs. Memory House:** Memory House is an artist's fixed installation — users can't create their own versions. CityWalk is a platform where anyone can leave their memories in the same city.
 
-**对比 2D/3D 照片查看器：** 那些产品把照片放进一个空间容器里供你观看。我们把照片种进城市里，输出物不是照片，而是一条属于你的街道。
+**vs. 2D/3D photo viewers:** Those products put photos inside a spatial container for passive viewing. We plant photos inside a city. The output isn't photos — it's a street that belongs to you.
 
-**社交壁垒：** 这是唯一一个让你走进别人记忆的产品。不是看照片，是走进他们的城市。
+**Social moat:** The only product that lets you walk through someone else's memories. Not viewing photos — walking into their city.
 
 ---
 
-## 十、Demo 范围
+## 10. Demo Scope
 
-### ✅ 真实实现（必须完成）
+### ✅ Real implementation (must ship)
 
-| 功能 | 说明 |
+| Feature | Description |
+|---------|-------------|
+| Gaussian Splat rendering | SparkJS loads `.spz` inside PICO browser |
+| Free walking in headset | WebXR 6DoF, real physical movement through city streets |
+| Particle effects | Three.js petals / glow overlaid on Splat |
+| Proximity trigger interaction | Approach wall/window hotspot → photo reveals |
+| Photo reveal panel | Three.js Sprite fade-in animation |
+| Background music | Auto-plays on world entry |
+
+### 🔴 Hardcoded / Verbal pitch only
+
+| Feature | Handling |
+|---------|---------|
+| User photo upload | Photos pre-built in; describe mobile upload flow during pitch |
+| Real-time Gemini fusion | Fused panorama pre-generated |
+| Real-time Marble generation | `.spz` pre-generated and hardcoded |
+| VLM auto hotspot positioning | Manual coordinate annotation after world walkthrough |
+| Social sharing / visiting | Architecture diagram + verbal pitch |
+| Multi-city template selection | One hardcoded default city |
+| User accounts / cloud storage | Architecture diagram verbal description |
+| AI music real-time generation | Audio file pre-generated, static load |
+
+**Core principle:** Everything the judges experience in the headset must be real — walking the city street, petals falling, photos emerging from walls. The rest of the pipeline can be faked. The moment of entering the world cannot.
+
+---
+
+## 11. Team
+
+| Member | Role |
+|--------|------|
+| Gerry (core dev) | Full pipeline: Gemini fusion → Marble → WebXR render + particle system + proximity interaction |
+| Teammate (music) | AI music generation + audio integration into WebXR scene |
+
+**Background:** SCI-Arc M.Arch, currently CS grad in Silicon Valley. Previous: Gensler Technical Designer, solo-published Unreal VR game. Primary stack: Node.js, JS / Three.js. XR and WebXR are new territory — learning on-site.
+
+---
+
+## 12. 24-Hour Schedule
+
+> **Reality constraint:** Day 2 is mostly debugging, video recording, social, and awards. All core features must be done on Day 1. Non-essential features are all faked.
+
+### Saturday Day 1 (the only real dev day)
+
+| Time | Task |
 |------|------|
-| Gaussian Splat 渲染 | SparkJS 在 PICO 浏览器内加载 `.spz` 文件 |
-| 头显内自由行走 | WebXR 6DoF，可真实移动探索城市街道 |
-| 粒子效果 | Three.js 花瓣 / 光晕叠加在 Splat 上 |
-| 近距离触发交互 | 走近墙壁/橱窗热点区域 → 照片浮现 |
-| 照片浮现面板 | Three.js Sprite 淡入动画 |
-| 背景音乐播放 | 进入世界后自动播放城市氛围音乐 |
+| 9:00–11:00 | Environment setup, team formation, tooling |
+| 11:00–14:00 | SparkJS + WebXR scaffold, load pre-generated .spz |
+| 14:00–17:00 | Proximity hotspot system + photo reveal panel |
+| 17:00–19:00 | Particle system (petals / glow) |
+| 19:00–23:00 | Music integration + full end-to-end integration |
 
-### 🔴 Hardcode / Pitch 口头描述
+### Sunday Day 2 (debug + submit)
 
-| 功能 | 处理方式 |
+| Time | Task |
 |------|------|
-| 用户选图上传 | 照片提前内置，pitch 时说明手机端上传流程 |
-| Gemini 实时融合 | 融合全景图提前生成好 |
-| Marble API 实时生成 | `.spz` 文件提前跑好，hardcode 进项目 |
-| VLM 自动热点定位 | 热点位置走完世界后手动标注 |
-| 社交分享 / 互相拜访 | 架构图 + 口头 pitch |
-| 多城市模板选择 | hardcode 一个默认城市 |
-| 用户账号 / 云存储 | 架构图口头描述 |
-| AI 音乐实时生成 | 音频文件提前生成，静态加载 |
-
-**核心原则：** 评委在头显里感受到的一切必须是真实的——走在城市街道上、花瓣飘落、照片从墙壁浮现。管道其他部分可以 fake，但进入城市的那一刻不能 fake。
+| 8:00–10:00 | Bug fixes + PICO device testing |
+| 10:00–12:00 | Final tuning + record 45s demo video |
+| 1:00 PM | Submission deadline |
+| 2:00–5:00 PM | Judging + Showcase + Awards |
 
 ---
 
-## 十一、团队
+## 13. Risks and Mitigations
 
-| 成员 | 职责 |
-|------|------|
-| Gerry（核心开发） | 完整管道：Gemini 融合 → Marble → WebXR 渲染 + 粒子系统 + 近距离交互 |
-| 队友（音乐方向） | AI 音乐生成 + 音频集成进 WebXR 场景 |
-
-**背景：** SCI-Arc 建筑学硕士，现为硅谷 CS 研究生。前职业经历：Gensler Technical Designer，曾独立发布 Unreal VR 游戏。主要技术栈：Node.js、JS / Three.js。XR 与 WebXR 是新领域，在现场边学边做。
-
----
-
-## 十二、24小时时间表
-
-> **现实约束：** Day 2 主要是调试、录视频、social 和颁奖。所有核心功能必须在 Day 1 完成。非必要功能全部 fake。
-
-### 周六 Day 1（唯一开发日）
-
-| 时间 | 任务 |
-|------|------|
-| 9:00–11:00 | 环境配置、团队组建、工具准备 |
-| 11:00–14:00 | SparkJS + WebXR 脚手架搭建，加载预生成 .spz |
-| 14:00–17:00 | 近距离热点系统 + 照片浮现面板 |
-| 17:00–19:00 | 粒子系统（花瓣 / 光晕）实现 |
-| 19:00–23:00 | 音乐集成 + 整体联调 |
-
-### 周日 Day 2（调试 + 提交）
-
-| 时间 | 任务 |
-|------|------|
-| 8:00–10:00 | Bug 修复 + PICO 设备实机测试 |
-| 10:00–12:00 | 最终调参 + 录制 Demo 视频（45秒） |
-| 13:00 | 提交截止 |
-| 14:00–17:00 | 评审 + Showcase + 颁奖 |
+| Risk | Likelihood | Mitigation |
+|------|-----------|-----------|
+| SparkJS performance insufficient on PICO | Medium | Pre-test on device; lower splat resolution if needed |
+| Fused panorama quality below bar | Medium | Pre-generate multiple prompt variations, pick best |
+| WebXR proximity detection latency | Low | Standard Three.js per-frame distance check, well-documented |
+| Demo crashes during judging | Low | All assets hardcoded, no real-time API calls, zero network dependency |
+| On-site PICO headset unavailable | Low | Organizers confirmed Quest 3 available; WebXR runs on Quest too |
 
 ---
 
-## 十三、风险与应对
+## 14. References
 
-| 风险 | 可能性 | 应对方案 |
-|------|--------|---------|
-| SparkJS 在 PICO 上性能不足 | 中 | 提前在设备上测试；必要时降低 Splat 分辨率 |
-| 融合全景图质量不达标 | 中 | 多组 Prompt 预生成多版本，选最佳 |
-| WebXR 近距离检测延迟 | 低 | 标准 Three.js 每帧距离检测，有大量文档可参考 |
-| Demo 评审时崩溃 | 低 | 所有资产 hardcode，无实时 API 调用，零网络依赖 |
-| 现场 PICO 头显不可用 | 低 | 主办方确认提供 Quest 3，WebXR 在 Quest 上同样可运行 |
+- World Labs Marble API: https://api.worldlabs.ai/marble/v1
+- Memory House case study: https://www.worldlabs.ai/case-studies/memory-house
+- SensAI WebXR Kit: https://github.com/V4C38/sensai-webxr-worldmodels
+- SensAI Knowledge Hub: https://xrbootcamp.notion.site/SensAI-Knowledge-Hub
+- Wist Labs (competitor reference): https://wistlabs.com
 
 ---
 
-## 十四、参考资料
-
-- World Labs Marble API：https://api.worldlabs.ai/marble/v1
-- Memory House 案例研究：https://www.worldlabs.ai/case-studies/memory-house
-- SensAI WebXR Kit：https://github.com/V4C38/sensai-webxr-worldmodels
-- SensAI Knowledge Hub：https://xrbootcamp.notion.site/SensAI-Knowledge-Hub
-- Wist Labs（竞品参考）：https://wistlabs.com
-
----
-
-*最后更新：2026年3月13日*
+*Last updated: March 13, 2026*
