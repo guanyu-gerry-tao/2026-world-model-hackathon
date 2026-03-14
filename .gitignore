@@ -1,0 +1,82 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# AI instructions
+.claude/
+.claude*
+CLAUDE.md
+.cursorrules
+.cursor/
+.copilot/
+.github/copilot-*
+AGENTS.md
+GEMINI.md
+.gemini/
+.codex/
+CODEX.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.eggs/
+venv/
+.venv/
+env/
+.env
+*.env.local
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Jupyter
+.ipynb_checkpoints/
+
+# JavaScript / Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+dist/
+build/
+.next/
+.nuxt/
+.output/
+.cache/
+.parcel-cache/
+.turbo/
+
+# Logs & temp
+*.log
+*.tmp
+*.cache
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Keep .gitkeep files
+!.gitkeep
