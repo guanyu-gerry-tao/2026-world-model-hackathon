@@ -66,13 +66,7 @@ PROMPT_A_END
 PROMPT_B_START
 THIS IS A 360° EQUIRECTANGULAR PANORAMA. THE OUTPUT MUST BE A FULL 360° EQUIRECTANGULAR IMAGE WITH 2:1 ASPECT RATIO. THIS IS NOT A REGULAR PHOTO. THE ENTIRE 360° SCENE MUST WRAP SEAMLESSLY FROM LEFT EDGE TO RIGHT EDGE.
 
-Style: Japanese anime film — specifically Makoto Shinkai (Your Name, Weathering With You). Key visual characteristics:
-- Crisp, defined outlines on all architecture and objects — clean anime linework
-- Dramatic, volumetric lighting: god rays, glowing windows, neon reflections on wet pavement, light bloom
-- Rich color contrast: deep indigo/purple sky against warm golden lights, vivid neon signs
-- Highly detailed backgrounds in the style of Japanese anime key art — every building has texture and depth
-- Cinematic atmosphere: lens flare, light particles, depth of field haze on distant elements
-Every frame must look like a production still from a Makoto Shinkai film.
+Style: hand-painted anime — Studio Ghibli / Makoto Shinkai aesthetic. Strikingly beautiful, visually stunning, rich and lush. Colors must be vivid and highly saturated — deep blues, glowing golds, lush greens, dramatic skies. Every element should look like a frame from an award-winning anime film.
 
 You will receive personal photos. ALL buildings, landmarks, and landscapes from the photos MUST appear in the output — do not ignore any photo.
 
@@ -89,7 +83,7 @@ EDGES:
 - Fill the entire width with buildings, architecture, and scenery — no empty zones at the edges
 - Left and right edges must match in tone and content so the 360° wrap is seamless
 
-STYLE: Makoto Shinkai anime — crisp outlines, dramatic god-ray lighting, glowing neon and warm window light, deep indigo sky, wet reflective pavement, light bloom and particles. Mood: cinematic, nostalgic, breathtakingly beautiful. No people.
+STYLE: Hand-painted brushwork, intensely luminous and saturated colors, dramatic expressive anime clouds, warm golden light, depth haze. Mood: breathtakingly beautiful, nostalgic, warm, magical. No people.
 
 Output: image only, no text.
 

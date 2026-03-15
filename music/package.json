@@ -1,0 +1,23 @@
+{
+  "name": "citywalk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "generate-music": "node scripts/generate_music.js",
+    "generate-music:tokyo": "node scripts/generate_music.js --city tokyo-shibuya",
+    "generate-music:kyoto": "node scripts/generate_music.js --city kyoto-alley",
+    "generate-music:paris": "node scripts/generate_music.js --city paris-street"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "replicate": "^1.0.1",
+    "vite": "^6.0.0"
+  }
+}
