@@ -168,6 +168,87 @@
 
       /* NPC hover cursor */
       body.npc-hover { cursor: pointer; }
+
+      /* ── Journal voice popup ─────────────────────────────────────────────── */
+      #journal-popup {
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%) translateY(30px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: rgba(10, 10, 20, 0.82);
+        border: 1px solid rgba(124, 140, 248, 0.35);
+        border-radius: 60px;
+        padding: 10px 24px 10px 10px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+      }
+      #journal-popup.visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: none;
+      }
+
+      #jp-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(124, 140, 248, 0.6);
+        flex-shrink: 0;
+      }
+
+      .jp-text {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      #jp-name {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        color: #e8e8f8;
+        letter-spacing: 0.02em;
+      }
+
+      .jp-waves {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 18px;
+      }
+
+      .jp-wave {
+        display: inline-block;
+        width: 3px;
+        border-radius: 2px;
+        background: #7c8cf8;
+        animation: jpPulse 1.1s ease-in-out infinite;
+      }
+      .jp-wave:nth-child(1) { animation-delay: 0s;    height: 6px; }
+      .jp-wave:nth-child(2) { animation-delay: 0.15s; height: 12px; }
+      .jp-wave:nth-child(3) { animation-delay: 0.3s;  height: 18px; }
+      .jp-wave:nth-child(4) { animation-delay: 0.15s; height: 12px; }
+      .jp-wave:nth-child(5) { animation-delay: 0s;    height: 6px; }
+
+      @keyframes jpPulse {
+        0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+        50%       { transform: scaleY(1);   opacity: 1; }
+      }
+
+      /* pause waves when not actively playing */
+      #journal-popup:not(.playing) .jp-wave {
+        animation-play-state: paused;
+        transform: scaleY(0.4);
+        opacity: 0.3;
+      }
     </style>
   </head>
   <body>
@@ -203,6 +284,21 @@
         <div id="pb-dots"></div>
       </div>
       <button id="pb-close">&#10005;</button>
+    </div>
+
+    <!-- Journal voice popup (shown when near an orb) -->
+    <div id="journal-popup">
+      <img id="jp-avatar" src="" alt="" />
+      <div class="jp-text">
+        <div id="jp-name"></div>
+        <div class="jp-waves">
+          <span class="jp-wave"></span>
+          <span class="jp-wave"></span>
+          <span class="jp-wave"></span>
+          <span class="jp-wave"></span>
+          <span class="jp-wave"></span>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

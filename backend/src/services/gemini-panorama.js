@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROMPTS_MD = fs.readFileSync(path.join(__dirname, "../prompts/panorama.md"), "utf-8");
 
 function extractPrompt(tag) {
-  const match = PROMPTS_MD.match(new RegExp(`${tag}_START\\n([\\s\\S]*?)\\n${tag}_END`));
+  const match = PROMPTS_MD.match(new RegExp(`${tag}_START\\r?\\n([\\s\\S]*?)\\r?\\n${tag}_END`));
   if (!match) throw new Error(`Prompt block ${tag} not found in panorama.md`);
   return match[1].trim();
 }

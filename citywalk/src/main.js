@@ -13,26 +13,23 @@ const SPLAT_URL = cityId
   : '/benchmark/test-gemini-20260315065249/world.spz'
 
 // ─── Photobook ────────────────────────────────────────────────────────────────
-// A floating photo album anchored inside the 3D world.
-// Walk within BOOK_OPEN_DIST metres → book opens like a real photobook.
-// Press Q / E (or left/right VR trigger) to flip between spreads.
-//
-// To use real trip photos: add images to benchmark/tokyo-shibuya/photos/ and
-// update the `url` fields in SPREADS below.
-
-const BOOK_POSITION   = new THREE.Vector3(0, 1.35, -3)
-const BOOK_OPEN_DIST  = 3.2   // metres → opens
-const BOOK_CLOSE_DIST = 5.5   // metres → closes
-
 // Each entry = one two-page spread: [left photo, right photo]
 const SPREADS = [
   [
-    { url: '/benchmark/test-gemini-20260315065249/panorama_raw.png', caption: 'Shibuya – raw capture' },
-    { url: '/benchmark/test-gemini-20260315065249/panorama.png',     caption: 'Shibuya – AI refined'  },
+    { url: '/benchmark/input-photos/pexels-nickkwanhk-2614818.jpg',  caption: 'Tokyo streets'       },
+    { url: '/benchmark/input-photos/pexels-agk42-2816904.jpg',       caption: 'City lights at dusk' },
   ],
   [
-    { url: '/benchmark/test-gemini-20260315000644/panorama_raw.png', caption: 'Earlier take'          },
-    { url: '/benchmark/test-gemini-20260315000644/panorama.png',     caption: 'World model source'    },
+    { url: '/benchmark/input-photos/pexels-dsd-143941-1829980.jpg',  caption: 'Urban exploration'   },
+    { url: '/benchmark/input-photos/pexels-pixabay-209798.jpg',      caption: 'Street scene'        },
+  ],
+  [
+    { url: '/benchmark/input-photos/image.jpg',                      caption: 'Shibuya crossing'    },
+    { url: '/benchmark/input-photos/2025-07-12-IMG_6945.jpeg',       caption: 'Summer trip memory'  },
+  ],
+  [
+    { url: '/benchmark/input-photos/L1001707-copy.jpg',                                               caption: 'Captured on film'     },
+    { url: '/benchmark/input-photos/Sensoji-Tokyo-_-Best-of-Tokyo-Tour-_-1.webp',                    caption: 'Sensoji Temple'       },
   ],
 ]
 
@@ -103,142 +100,7 @@ function makeLabel(text) {
   })
 }
 
-// ─── Photobook scene object ───────────────────────────────────────────────────
-
-const PAGE_W = 0.65   // metres per page
-const PAGE_H = 0.43
-
-// Pre-load all photo textures; crop centre of 2:1 panoramas to fill the page
-const texLoader = new THREE.TextureLoader()
-const spreadTextures = SPREADS.map(spread => spread.map(({ url }) => {
-  const t = texLoader.load(url)
-  t.colorSpace = THREE.SRGBColorSpace
-  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping
-  // Page AR = 0.65/0.43 ≈ 1.51 ; panorama AR = 2.0 → show central 75.7 % width
-  t.repeat.set(0.757, 1.0)
-  t.offset.set(0.1215, 0)
-  return t
-}))
-
-const bookGroup = new THREE.Group()
-bookGroup.position.copy(BOOK_POSITION)
-scene.add(bookGroup)
-
-// ── Cover (visible when closed) ──────────────────────────────────────────────
-const coverTex = makeCanvasTex(680, 440, ctx => {
-  const g = ctx.createLinearGradient(0, 0, 680, 440)
-  g.addColorStop(0, '#0d1b2a'); g.addColorStop(1, '#1b2838')
-  ctx.fillStyle = g; ctx.fillRect(0, 0, 680, 440)
-  ctx.strokeStyle = '#c9a96e'; ctx.lineWidth = 5
-  ctx.strokeRect(14, 14, 652, 412)
-  ctx.fillStyle = '#c9a96e'
-  ctx.font = 'bold 72px serif'; ctx.textAlign = 'center'
-  ctx.fillText('CityWalk', 340, 190)
-  ctx.fillStyle = '#c9a96eaa'
-  ctx.font = '28px serif'
-  ctx.fillText('Tokyo  ·  Shibuya  ·  2026', 340, 248)
-  ctx.fillStyle = '#c9a96e66'
-  ctx.font = 'italic 22px serif'
-  ctx.fillText('walk closer to open', 340, 400)
-})
-const coverMat  = new THREE.MeshBasicMaterial({ map: coverTex, transparent: true, opacity: 1 })
-const coverMesh = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 2 + 0.03, PAGE_H + 0.03), coverMat)
-bookGroup.add(coverMesh)
-
-// ── Spine (shown when open) ───────────────────────────────────────────────────
-const spineMat  = new THREE.MeshBasicMaterial({ color: 0x1b2838, transparent: true, opacity: 0 })
-const spineMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.026, PAGE_H), spineMat)
-spineMesh.position.z = 0.001
-bookGroup.add(spineMesh)
-
-// ── Page caption helper ───────────────────────────────────────────────────────
-function makeCaption(text) {
-  return makeCanvasTex(512, 48, ctx => {
-    ctx.clearRect(0, 0, 512, 48)
-    ctx.fillStyle = '#3d2b1f'
-    ctx.font = 'italic 24px serif'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText(text, 256, 26)
-  })
-}
-
-// ── Left page (group pivots around its right edge = the spine) ────────────────
-const leftGroup  = new THREE.Group()
-bookGroup.add(leftGroup)
-
-const leftBgMat  = new THREE.MeshBasicMaterial({ color: 0xf5f0e8, transparent: true, opacity: 0 })
-const leftBg     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W, PAGE_H), leftBgMat)
-leftBg.position.x = -PAGE_W / 2
-leftGroup.add(leftBg)
-
-const leftPhotoMat  = new THREE.MeshBasicMaterial({ map: spreadTextures[0][0], transparent: true, opacity: 0 })
-const leftPhoto     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 0.87, PAGE_H * 0.80), leftPhotoMat)
-leftPhoto.position.set(-PAGE_W / 2, PAGE_H * 0.055, 0.001)
-leftGroup.add(leftPhoto)
-
-const leftCapMat  = new THREE.MeshBasicMaterial({ map: makeCaption(SPREADS[0][0].caption), transparent: true, opacity: 0, depthWrite: false })
-const leftCap     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 0.85, 0.055), leftCapMat)
-leftCap.position.set(-PAGE_W / 2, -PAGE_H * 0.38, 0.001)
-leftGroup.add(leftCap)
-
-// ── Right page ────────────────────────────────────────────────────────────────
-const rightGroup  = new THREE.Group()
-bookGroup.add(rightGroup)
-
-const rightBgMat  = new THREE.MeshBasicMaterial({ color: 0xf5f0e8, transparent: true, opacity: 0 })
-const rightBg     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W, PAGE_H), rightBgMat)
-rightBg.position.x = PAGE_W / 2
-rightGroup.add(rightBg)
-
-const rightPhotoMat  = new THREE.MeshBasicMaterial({ map: spreadTextures[0][1], transparent: true, opacity: 0 })
-const rightPhoto     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 0.87, PAGE_H * 0.80), rightPhotoMat)
-rightPhoto.position.set(PAGE_W / 2, PAGE_H * 0.055, 0.001)
-rightGroup.add(rightPhoto)
-
-const rightCapMat  = new THREE.MeshBasicMaterial({ map: makeCaption(SPREADS[0][1].caption), transparent: true, opacity: 0, depthWrite: false })
-const rightCap     = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 0.85, 0.055), rightCapMat)
-rightCap.position.set(PAGE_W / 2, -PAGE_H * 0.38, 0.001)
-rightGroup.add(rightCap)
-
-// ── Navigation hint (shown below the open book) ───────────────────────────────
-const hintMat  = new THREE.MeshBasicMaterial({
-  map: makeCanvasTex(512, 48, ctx => {
-    ctx.clearRect(0, 0, 512, 48)
-    ctx.fillStyle = 'rgba(0,0,0,0.45)'
-    ctx.beginPath(); ctx.roundRect(0, 4, 512, 40, 8); ctx.fill()
-    ctx.fillStyle = '#ffffffcc'; ctx.font = '19px sans-serif'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText('Q ◀  prev page   next page  ▶ E', 256, 24)
-  }),
-  transparent: true, opacity: 0, depthWrite: false,
-})
-const hintMesh = new THREE.Mesh(new THREE.PlaneGeometry(PAGE_W * 2 + 0.03, 0.05), hintMat)
-hintMesh.position.set(0, -(PAGE_H / 2 + 0.052), 0.001)
-bookGroup.add(hintMesh)
-
-// ── Book state ────────────────────────────────────────────────────────────────
-let bookOpenProgress = 0   // 0 = fully closed, 1 = fully open
-let bookIsOpen       = false
-let currentSpread    = 0
-let pageCooldown     = 0
-
-// Page flip: fold pages briefly, swap textures at the halfway point
-let flipProgress = 0       // counts 1 → 0 when active
-let flipPending  = -1      // spread index to load at halfway
-
-function triggerFlip(nextIndex) {
-  if (flipProgress > 0) return
-  flipPending  = (nextIndex + SPREADS.length) % SPREADS.length
-  flipProgress = 1.0
-  pageCooldown = 30
-}
-
-// Keydown for page navigation (Q/E)
-window.addEventListener('keydown', e => {
-  if (!bookIsOpen || pageCooldown > 0) return
-  if (e.code === 'KeyQ') triggerFlip(currentSpread - 1)
-  if (e.code === 'KeyE') triggerFlip(currentSpread + 1)
-})
+// (3D book removed — photos are shown via the HTML overlay only)
 
 // ─── Travel Journal Orbs ─────────────────────────────────────────────────────
 // Glowing orbs mark where each person left a journal entry.
@@ -302,12 +164,48 @@ async function loadJournalEntries() {
 
 loadJournalEntries()
 
+// ─── Demo Journal Orb (hardcoded) ────────────────────────────────────────────
+// Sai's journal entry — pinned to the lantern window on the LEFT side.
+// POSITION: (-3, 1.3, -2) — turn left from start, walk toward the warm lantern.
+// Voice triggers only when within 1.5m (tight radius — must be right next to it).
+const DEMO_ORB_TRIGGER = 1.5  // tighter than default so it only plays up close
+
+;(function spawnDemoOrb() {
+  const geo = new THREE.SphereGeometry(0.14, 16, 16)
+  const mat = new THREE.MeshBasicMaterial({ color: 0x7c8cf8, transparent: true, opacity: 0.85 })
+  const orb = new THREE.Mesh(geo, mat)
+  orb.position.set(-3, 1.3, -2)
+
+  const labelTex = makeLabel('Sai')
+  const labelGeo = new THREE.PlaneGeometry(1.0, 0.18)
+  const labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, depthWrite: false })
+  const labelMesh = new THREE.Mesh(labelGeo, labelMat)
+  labelMesh.position.set(0, 0.28, 0)
+  orb.add(labelMesh)
+  scene.add(orb)
+
+  const audio = new THREE.PositionalAudio(audioListener)
+  audio.setRefDistance(1.5)
+  audio.setVolume(1.0)
+  orb.add(audio)
+
+  new THREE.AudioLoader().load('/benchmark/journal-sai.mp3', buffer => audio.setBuffer(buffer))
+
+  // Use DEMO_ORB_TRIGGER (not the global JOURNAL_TRIGGER_DIST) for proximity check
+  journalOrbs.push({ orb, audio, entry: { author: 'Sai', avatarUrl: '/benchmark/avatar-sai.png' }, labelMat, triggerDist: DEMO_ORB_TRIGGER })
+})()
+
 // ─── Photographer NPC ────────────────────────────────────────────────────────
 // A simple humanoid figure standing in the world holding a camera.
 // Click / tap them → full-screen photobook overlay opens.
 
-// NPC_GROUND_Y: in the panorama-captured world, y=0 is eye level (~1.7 m above ground)
-const NPC_GROUND_Y = -1.7
+// NPC_GROUND_Y: vertical offset so the sprite's feet sit on the visible ground.
+// y=0 is the panorama capture eye-level; tweak this until feet touch the floor.
+const NPC_GROUND_Y   = -1.2
+
+// Proximity distances for the auto-popup photobook
+const NPC_POPUP_OPEN  = 2.5   // metres → overlay opens automatically
+const NPC_POPUP_CLOSE = 4.5   // metres → overlay closes automatically
 
 const npcGroup = new THREE.Group()
 npcGroup.position.set(1.5, NPC_GROUND_Y, -3.5)
@@ -534,6 +432,9 @@ scene.add(xrController1)
 
 const loadingEl  = document.getElementById('loading')
 const loadingTxt = document.getElementById('loading-text')
+const jpPopup    = document.getElementById('journal-popup')
+const jpAvatar   = document.getElementById('jp-avatar')
+const jpName     = document.getElementById('jp-name')
 
 // ─── Debug overlay ───────────────────────────────────────────────────────────
 
@@ -642,63 +543,8 @@ renderer.setAnimationLoop(() => {
   // Clamp to splat bounds so the user can't walk out of the city
   if (boundary) playerRig.position.clamp(boundary.min, boundary.max)
 
-  // ── Photobook ─────────────────────────────────────────────────────────────
   const camWorld = new THREE.Vector3()
   camera.getWorldPosition(camWorld)
-
-  // Billboard: face camera on Y axis only
-  bookGroup.lookAt(camWorld.x, bookGroup.position.y, camWorld.z)
-
-  // Decide open/close based on proximity
-  const distToBook = camWorld.distanceTo(bookGroup.position)
-  if (!bookIsOpen && distToBook < BOOK_OPEN_DIST)   bookIsOpen = true
-  if ( bookIsOpen && distToBook > BOOK_CLOSE_DIST)  bookIsOpen = false
-
-  // Smoothly animate open progress
-  const targetProgress = bookIsOpen ? 1 : 0
-  bookOpenProgress += (targetProgress - bookOpenProgress) * 0.07
-  const p = bookOpenProgress * bookOpenProgress * (3 - 2 * bookOpenProgress)  // smoothstep
-
-  // ── Page flip animation (fold pages, swap textures at midpoint, unfold) ──
-  let flipScale = 1  // X-axis scale applied to both page groups during flip
-  if (flipProgress > 0) {
-    flipProgress = Math.max(0, flipProgress - 0.08)
-    // First half → fold in (scale collapses toward spine)
-    // Second half → unfold out (scale expands from spine)
-    const half = flipProgress >= 0.5
-      ? (flipProgress - 0.5) * 2          // second half: 0→1 (expanding)
-      : flipProgress * 2                  // first half:  1→0 (collapsing)
-    flipScale = half
-
-    // Swap textures at the midpoint (when pages are "behind" the spine)
-    if (flipProgress < 0.5 && flipPending >= 0) {
-      currentSpread = flipPending
-      flipPending   = -1
-      leftPhotoMat.map  = spreadTextures[currentSpread][0]; leftPhotoMat.needsUpdate  = true
-      rightPhotoMat.map = spreadTextures[currentSpread][1]; rightPhotoMat.needsUpdate = true
-      leftCapMat.map    = makeCaption(SPREADS[currentSpread][0].caption); leftCapMat.needsUpdate  = true
-      rightCapMat.map   = makeCaption(SPREADS[currentSpread][1].caption); rightCapMat.needsUpdate = true
-    }
-  }
-  if (pageCooldown > 0) pageCooldown--
-
-  // Apply flip scale (squish along X relative to spine pivot)
-  leftGroup.scale.x  = flipScale
-  rightGroup.scale.x = flipScale
-
-  // ── Page fold open/close (rotate around spine) ────────────────────────────
-  // Closed: pages folded 90° in front of spine  |  Open: pages flat, spread out
-  const foldAngle = (1 - p) * Math.PI / 2
-  leftGroup.rotation.y  = -foldAngle   // folds from -90° (closed) → 0° (open)
-  rightGroup.rotation.y =  foldAngle   // folds from +90° (closed) → 0° (open)
-
-  // ── Material opacities ───────────────────────────────────────────────────
-  coverMat.opacity   = 1 - p             // cover visible when closed
-  spineMat.opacity   = p
-  leftBgMat.opacity  = rightBgMat.opacity  = p
-  leftPhotoMat.opacity = rightPhotoMat.opacity = p
-  leftCapMat.opacity   = rightCapMat.opacity   = p
-  hintMat.opacity    = p * (SPREADS.length > 1 ? 1 : 0)
 
   // ── NPC billboard + idle animation ───────────────────────────────────────
   const t = Date.now() * 0.001
@@ -710,23 +556,54 @@ renderer.setAnimationLoop(() => {
   // hint label always faces camera
   hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
 
-  // ── Journal orb proximity + auto-play ────────────────────────────────────
+  // ── Proximity auto-popup ──────────────────────────────────────────────────
+  const npcWorldPos = new THREE.Vector3(1.5, NPC_GROUND_Y, -3.5)
+  const distToNpc   = camWorld.distanceTo(npcWorldPos)
+  if (!pbOpen && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
+  if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
+
+  // ── Journal orb proximity + auto-play + popup ────────────────────────────
+
   const tOrb = Date.now() * 0.003
+  let nearestOrb = null
+  let nearestDist = Infinity
+
   for (const item of journalOrbs) {
-    const dist = camWorld.distanceTo(item.orb.position)
+    const dist    = camWorld.distanceTo(item.orb.position)
+    const trigger = item.triggerDist ?? JOURNAL_TRIGGER_DIST
 
     // Billboard: always face the camera
     item.orb.lookAt(camWorld.x, item.orb.position.y, camWorld.z)
 
     // Pulse scale when player is nearby
-    const near  = dist < JOURNAL_TRIGGER_DIST * 2
+    const near  = dist < trigger * 2
     const pulse = near ? 1 + 0.2 * Math.sin(tOrb + item.orb.position.x) : 1
     item.orb.scale.setScalar(pulse)
 
     // Auto-play voice when player enters trigger radius
-    if (dist < JOURNAL_TRIGGER_DIST && item.audio.buffer && !item.audio.isPlaying) {
+    if (dist < trigger && item.audio.buffer && !item.audio.isPlaying) {
       item.audio.play()
     }
+
+    // Track closest orb within popup range
+    if (dist < trigger && dist < nearestDist) {
+      nearestDist = dist
+      nearestOrb  = item
+    }
+  }
+
+  // Show/hide popup for nearest orb
+  if (nearestOrb) {
+    const entry = nearestOrb.entry
+    if (jpAvatar.dataset.author !== entry.author) {
+      jpAvatar.src = entry.avatarUrl || ''
+      jpAvatar.dataset.author = entry.author
+      jpName.textContent = entry.author
+    }
+    jpPopup.classList.add('visible')
+    jpPopup.classList.toggle('playing', nearestOrb.audio.isPlaying)
+  } else {
+    jpPopup.classList.remove('visible', 'playing')
   }
 
   renderer.render(scene, camera)
