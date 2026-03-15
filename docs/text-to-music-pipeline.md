@@ -5,7 +5,7 @@
 ```
 City Description (text prompt)
         │
-        │  scripts/generate_music.js
+        │  music/scripts/generate_music.js
         ▼
 ┌─────────────────────────────────┐
 │  Replicate API                  │
@@ -19,14 +19,14 @@ City Description (text prompt)
         download .mp3
              │
              ▼
-   assets/cities/<city-id>/music.mp3
+   music/assets/cities/<city-id>/music.mp3
              │
              │  (hardcoded into project at hackathon)
              │
              ▼
 ┌─────────────────────────────────┐
 │  WebXR Runtime                  │
-│  src/audio/MusicController.js   │
+│  music/src/audio/MusicController.js   │
 │  · THREE.AudioListener          │
 │  · fade in on scene entry       │
 │  · volume boost near hotspots   │
@@ -39,7 +39,7 @@ City Description (text prompt)
    Each city has a hand-written text prompt describing its atmosphere. The script calls the Replicate API with that prompt and waits for the model to finish generating.
 
 2. **Download mp3** (`generate_music.js:85–89`)
-   Replicate returns a URL to the generated audio file. The script downloads it and saves it as `assets/cities/<city-id>/music.mp3`.
+   Replicate returns a URL to the generated audio file. The script downloads it and saves it as `music/assets/cities/<city-id>/music.mp3`.
 
 3. **Load & play in WebXR** (`MusicController.js:44–52`)
    At runtime, `MusicController` loads the mp3 into Three.js's `AudioListener` system. Music fades in when the scene starts and gets louder when the player approaches a memory hotspot.
@@ -47,6 +47,9 @@ City Description (text prompt)
 ## Usage
 
 ```bash
+# Enter music folder first
+cd music
+
 # Pre-generate all city tracks (run before hackathon)
 npm run generate-music
 
@@ -54,7 +57,7 @@ npm run generate-music
 npm run generate-music:tokyo
 ```
 
-Requires `REPLICATE_API_TOKEN` in `.env`. See `.env.example`.
+Requires `REPLICATE_API_TOKEN` in `music/.env`. See `music/.env.example`.
 
 ## City Prompts
 
@@ -68,6 +71,6 @@ Requires `REPLICATE_API_TOKEN` in `.env`. See `.env.example`.
 
 | File | Role |
 |---|---|
-| `scripts/generate_music.js` | Pre-generation script (run offline) |
-| `src/audio/MusicController.js` | WebXR runtime audio controller |
-| `assets/cities/<id>/music.mp3` | Generated output (committed to repo) |
+| `music/scripts/generate_music.js` | Pre-generation script (run offline) |
+| `music/src/audio/MusicController.js` | WebXR runtime audio controller |
+| `music/assets/cities/<id>/music.mp3` | Generated output (committed to repo) |
