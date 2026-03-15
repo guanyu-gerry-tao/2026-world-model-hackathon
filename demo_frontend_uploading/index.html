@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>WorldWalk — Build Your World</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a1a;
+      color: #e8e8ff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 24px 60px;
+      animation: fadeIn 0.5s ease;
+    }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HEADER ── */
+    .logo {
+      font-size: 13px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #7b8cde;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f0abfc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: #8892b0;
+      text-align: center;
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    /* ── PHOTO GRID ── */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 32px;
+    }
+    .photo-cell {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .photo-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .photo-cell .check {
+      position: absolute;
+      top: 6px; right: 6px;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: #a78bfa;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .photo-cell.selected {
+      border-color: #a78bfa;
+      transform: scale(0.96);
+    }
+    .photo-cell.selected .check { opacity: 1; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      width: 100%;
+      max-width: 420px;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff;
+    }
+    .btn-primary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: #e8e8ff;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .btn-glow {
+      background: linear-gradient(135deg, #7c3aed, #db2777);
+      color: #fff;
+      box-shadow: 0 0 32px rgba(124, 58, 237, 0.5);
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 16px;
+    }
+    .progress-label {
+      font-size: 13px;
+      color: #8892b0;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #7c3aed, #60a5fa);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── STATUS LOG ── */
+    .status-log {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #64748b;
+      min-height: 120px;
+      margin-bottom: 24px;
+    }
+    .status-log .line {
+      margin-bottom: 6px;
+      animation: fadeIn 0.3s ease;
+    }
+    .status-log .line.active { color: #a78bfa; }
+    .status-log .line.done   { color: #34d399; }
+
+    /* ── PANORAMA REVEAL ── */
+    .panorama-wrap {
+      width: 100%;
+      max-width: 420px;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 28px;
+      box-shadow: 0 0 60px rgba(124, 58, 237, 0.3);
+      position: relative;
+    }
+    .panorama-wrap img {
+      width: 100%;
+      display: block;
+    }
+    .panorama-badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #a78bfa;
+    }
+
+    /* ── GLASSES SCREEN ── */
+    .glasses-icon {
+      font-size: 80px;
+      margin-bottom: 24px;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.06); opacity: 0.8; }
+    }
+    .glasses-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e8e8ff;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .glasses-sub {
+      font-size: 15px;
+      color: #8892b0;
+      text-align: center;
+      line-height: 1.7;
+      max-width: 320px;
+      margin-bottom: 48px;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #a78bfa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .step-label {
+      font-size: 14px;
+      color: #8892b0;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .step-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #e8e8ff;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .divider { height: 32px; }
+    .mt-auto { margin-top: auto; }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 92vw;
+      max-height: 82vh;
+      border-radius: 16px;
+      object-fit: contain;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px; right: 20px;
+      font-size: 28px;
+      color: #fff;
+      cursor: pointer;
+      line-height: 1;
+      opacity: 0.7;
+    }
+    .lightbox-close:hover { opacity: 1; }
+    .lightbox-actions {
+      position: absolute;
+      bottom: 32px;
+      display: flex;
+      gap: 12px;
+    }
+    .lightbox-btn {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .lightbox-btn-select {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff;
+    }
+    .lightbox-btn-cancel {
+      background: rgba(255,255,255,0.1);
+      color: #e8e8ff;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 1 — SELECT PHOTOS
+═══════════════════════════════════════════════ -->
+<div class="screen active" id="screen-select">
+  <p class="logo">WorldWalk</p>
+  <h1>Build Your World</h1>
+  <p class="subtitle">Select photos from your journey.<br/>We'll turn them into a 3D world.</p>
+
+  <div class="photo-grid" id="photo-grid">
+    <!-- Populated by JS from PHOTOS config -->
+  </div>
+
+  <button class="btn btn-primary" id="btn-upload" disabled onclick="startUpload()">
+    Create My World
+  </button>
+</div>
+
+<!-- ── LIGHTBOX ── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightbox-img" src="" alt="" />
+  <div class="lightbox-actions">
+    <button class="lightbox-btn lightbox-btn-cancel" onclick="closeLightbox()">Cancel</button>
+    <button class="lightbox-btn lightbox-btn-select" id="lightbox-select-btn" onclick="confirmSelect()">Select Photo</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 2 — FAKE UPLOADING + PROCESSING
+═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-processing">
+  <p class="logo">WorldWalk</p>
+  <div class="divider"></div>
+
+  <div class="step-label" id="proc-step">Step 1 of 3</div>
+  <div class="step-title" id="proc-title">Uploading Photos</div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="prog-label">Uploading...</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="prog-fill"></div>
+    </div>
+  </div>
+
+  <div class="status-log" id="status-log"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 3 — PANORAMA REVEAL
+═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-panorama">
+  <p class="logo">WorldWalk</p>
+  <h1>Your World is Ready</h1>
+  <p class="subtitle">We built a 360° world from your photos.</p>
+
+  <div class="panorama-wrap">
+    <!-- ↓ PANORAMA IMAGE — place your file at panorama/panorama.png -->
+    <img id="panorama-img" src="panorama/panorama.png" alt="Generated panorama" />
+    <div class="panorama-badge">360° Panorama</div>
+  </div>
+
+  <button class="btn btn-glow" onclick="startWorldProcessing()">
+    Enter This World →
+  </button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 4 — GENERATING WORLD (fake)
+═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-world">
+  <p class="logo">WorldWalk</p>
+  <div class="divider"></div>
+  <div class="divider"></div>
+
+  <div class="spinner"></div>
+  <div class="step-title">Building 3D World…</div>
+  <p class="subtitle">Reconstructing geometry<br/>and placing you inside.</p>
+
+  <div class="progress-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill" id="world-prog-fill"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 5 — PUT ON GLASSES
+═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-glasses">
+  <p class="logo">WorldWalk</p>
+  <div class="divider"></div>
+  <div class="divider"></div>
+
+  <div class="glasses-icon">🥽</div>
+  <div class="glasses-title">Your World is Live</div>
+  <p class="glasses-sub">
+    Put on your glasses now.<br/>
+    Your personal world is waiting for you inside.
+  </p>
+</div>
+
+
+<script>
+  // ═══════════════════════════════════════════════
+  // CONFIG — edit these two sections
+  // ═══════════════════════════════════════════════
+
+  const PHOTOS = [
+    { src: 'photos/photo_1.jpg', label: 'Photo 1' },
+    { src: 'photos/photo_2.jpg', label: 'Photo 2' },
+    { src: 'photos/photo_3.jpg', label: 'Photo 3' },
+    { src: 'photos/photo_4.jpg', label: 'Photo 4' },
+    { src: 'photos/photo_5.jpg', label: 'Photo 5' },
+    { src: 'photos/photo_6.jpg', label: 'Photo 6' },
+  ];
+
+  const PANORAMA_SRC = 'panorama/panorama.png'; // ← your pre-made panorama
+
+  // ═══════════════════════════════════════════════
+  // PHOTO SELECTION
+  // ═══════════════════════════════════════════════
+
+  const selected = new Set();
+
+  let lightboxIndex = null;
+
+  function buildGrid() {
+    const grid = document.getElementById('photo-grid');
+    PHOTOS.forEach((p, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'photo-cell';
+      cell.id = 'cell-' + i;
+      cell.innerHTML = `
+        <img src="${p.src}" alt="${p.label}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%231e1b4b%22 width=%22200%22 height=%22200%22/><text fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2228%22>📷</text></svg>'" />
+        <div class="check">✓</div>
+      `;
+      cell.onclick = () => openLightbox(i);
+      grid.appendChild(cell);
+    });
+  }
+
+  function openLightbox(i) {
+    lightboxIndex = i;
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = PHOTOS[i].src;
+    const btn = document.getElementById('lightbox-select-btn');
+    if (selected.has(i)) {
+      btn.textContent = 'Deselect Photo';
+      btn.style.background = 'rgba(239,68,68,0.8)';
+    } else {
+      btn.textContent = 'Select Photo';
+      btn.style.background = '';
+    }
+    lb.classList.add('open');
+  }
+
+  function closeLightbox(e) {
+    if (e && e.target !== document.getElementById('lightbox')) return;
+    document.getElementById('lightbox').classList.remove('open');
+    lightboxIndex = null;
+  }
+
+  function confirmSelect() {
+    if (lightboxIndex === null) return;
+    const i = lightboxIndex;
+    const cell = document.getElementById('cell-' + i);
+    if (selected.has(i)) {
+      selected.delete(i);
+      cell.classList.remove('selected');
+    } else {
+      selected.add(i);
+      cell.classList.add('selected');
+    }
+    document.getElementById('btn-upload').disabled = selected.size === 0;
+    document.getElementById('lightbox').classList.remove('open');
+    lightboxIndex = null;
+  }
+
+  // ═══════════════════════════════════════════════
+  // FAKE UPLOAD + PROCESSING FLOW
+  // ═══════════════════════════════════════════════
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function addLog(text, state = 'active') {
+    const log = document.getElementById('status-log');
+    const prev = log.querySelector('.line.active');
+    if (prev) prev.className = 'line done';
+    const line = document.createElement('div');
+    line.className = `line ${state}`;
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent = pct + '%';
+    if (label) document.getElementById('prog-label').textContent = label;
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function startUpload() {
+    showScreen('screen-processing');
+
+    // ── Step 1: Upload ──
+    document.getElementById('proc-step').textContent = 'Step 1 of 3';
+    document.getElementById('proc-title').textContent = 'Uploading Photos';
+    addLog('▶ Connecting to server...');
+    await sleep(800);
+    addLog('▶ Uploading ' + selected.size + ' photo(s)...');
+    for (let p = 0; p <= 100; p += 8) {
+      setProgress(Math.min(p, 100), 'Uploading...');
+      await sleep(120);
+    }
+    addLog('✓ Upload complete', 'done');
+    await sleep(400);
+
+    // ── Step 2: Generating panorama ──
+    document.getElementById('proc-step').textContent = 'Step 2 of 3';
+    document.getElementById('proc-title').textContent = 'Generating Panorama';
+    setProgress(0, 'Analyzing photos...');
+    addLog('▶ Analyzing scene composition...');
+    await sleep(1200);
+    addLog('▶ Generating 360° panorama with AI...');
+    for (let p = 0; p <= 75; p += 3) {
+      setProgress(Math.min(p, 75), 'AI generating...');
+      await sleep(180);
+    }
+    addLog('▶ Refining image quality...');
+    for (let p = 75; p <= 100; p += 5) {
+      setProgress(Math.min(p, 100), 'Refining...');
+      await sleep(150);
+    }
+    addLog('✓ Panorama ready', 'done');
+    await sleep(500);
+
+    // ── Step 3: Finalizing ──
+    document.getElementById('proc-step').textContent = 'Step 3 of 3';
+    document.getElementById('proc-title').textContent = 'Finalizing';
+    setProgress(0, 'Finalizing...');
+    addLog('▶ Packaging your world...');
+    for (let p = 0; p <= 100; p += 12) {
+      setProgress(Math.min(p, 100), 'Almost done...');
+      await sleep(100);
+    }
+    addLog('✓ Done!', 'done');
+    await sleep(600);
+
+    // Reveal panorama
+    document.getElementById('panorama-img').src = PANORAMA_SRC;
+    showScreen('screen-panorama');
+  }
+
+  // ═══════════════════════════════════════════════
+  // FAKE WORLD GENERATION
+  // ═══════════════════════════════════════════════
+
+  async function startWorldProcessing() {
+    showScreen('screen-world');
+
+    const fill = document.getElementById('world-prog-fill');
+    for (let p = 0; p <= 100; p += 1) {
+      fill.style.width = p + '%';
+      await sleep(60); // ~6 seconds total
+    }
+
+    showScreen('screen-glasses');
+  }
+
+  // ── Init ──
+  buildGrid();
+</script>
+
+</body>
+</html>
