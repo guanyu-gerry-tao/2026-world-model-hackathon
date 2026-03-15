@@ -267,6 +267,7 @@ SPREADS.forEach((_, i) => {
 
 let pbCurrentSpread = 0
 let pbOpen = false
+let pbManuallyClosed = false  // prevents auto-reopen after user clicks close
 
 function pbPopulate(index) {
   const spread = SPREADS[index]
@@ -290,23 +291,77 @@ function pbGoTo(index, dir = 1) {
   }, 220)
 }
 
-function openPhotobookOverlay() {
-  pbCurrentSpread = 0
-  pbPopulate(0)
-  pbSpread.classList.remove('flip-out', 'flip-in')
-  pbOverlay.classList.add('open')
-  pbOpen = true
+// ─── VR 3D Photobook ─────────────────────────────────────────────────────────
+
+const vrTexLoader = new THREE.TextureLoader()
+const vrTextures  = SPREADS.map(spread => spread.map(({ url }) => vrTexLoader.load(url)))
+
+const vrBook = new THREE.Group()
+vrBook.visible = false
+scene.add(vrBook)
+
+const vrBg = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.3, 0.75),
+  new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.88 })
+)
+vrBook.add(vrBg)
+
+const vrLeftMat  = new THREE.MeshBasicMaterial({ map: vrTextures[0][0] })
+const vrRightMat = new THREE.MeshBasicMaterial({ map: vrTextures[0][1] })
+const vrLeft  = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), vrLeftMat)
+const vrRight = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.6), vrRightMat)
+vrLeft.position.set(-0.56, 0, 0.001)
+vrRight.position.set( 0.56, 0, 0.001)
+vrBook.add(vrLeft)
+vrBook.add(vrRight)
+
+let vrSpread = 0
+let vrTriggerUsed = { left: false, right: false }
+
+function vrBookGoTo(index) {
+  vrSpread = (index + SPREADS.length) % SPREADS.length
+  vrLeftMat.map  = vrTextures[vrSpread][0]; vrLeftMat.needsUpdate  = true
+  vrRightMat.map = vrTextures[vrSpread][1]; vrRightMat.needsUpdate = true
 }
 
-function closePhotobookOverlay() {
+function positionVRBook() {
+  const dir = new THREE.Vector3()
+  camera.getWorldDirection(dir)
+  dir.y = 0; dir.normalize()
+  const camPos = new THREE.Vector3()
+  camera.getWorldPosition(camPos)
+  vrBook.position.copy(camPos).addScaledVector(dir, 1.8)
+  vrBook.position.y = camPos.y + 0.1
+  vrBook.lookAt(camPos)
+}
+
+function openPhotobookOverlay() {
+  pbCurrentSpread = 0
+  pbOpen = true
+  if (renderer.xr.isPresenting) {
+    vrSpread = 0
+    vrBookGoTo(0)
+    positionVRBook()
+    vrBook.visible = true
+  } else {
+    pbPopulate(0)
+    pbSpread.classList.remove('flip-out', 'flip-in')
+    pbOverlay.classList.add('open')
+  }
+}
+
+function closePhotobookOverlay(manual = false) {
   pbOverlay.classList.remove('open')
+  vrBook.visible = false
   pbOpen = false
+  if (manual) pbManuallyClosed = true
 }
 
 document.getElementById('pb-prev').addEventListener('click',  () => pbGoTo(pbCurrentSpread - 1, -1))
 document.getElementById('pb-next').addEventListener('click',  () => pbGoTo(pbCurrentSpread + 1,  1))
-document.getElementById('pb-close').addEventListener('click', closePhotobookOverlay)
-window.addEventListener('keydown', e => { if (e.code === 'Escape' && pbOpen) closePhotobookOverlay() })
+document.getElementById('pb-close').addEventListener('click',    () => closePhotobookOverlay(true))
+document.getElementById('pb-close').addEventListener('touchend', e => { e.preventDefault(); closePhotobookOverlay(true) })
+window.addEventListener('keydown', e => { if (e.code === 'Escape' && pbOpen) closePhotobookOverlay(true) })
 
 // ─── Raycaster for NPC click ──────────────────────────────────────────────────
 
@@ -524,6 +579,40 @@ renderer.setAnimationLoop(() => {
         if (rightSrc) rightSrc._snapUsed = false
       }
     }
+
+    // VR controller interaction
+    if (!vrBook.visible) {
+      // Right trigger → raycast onto NPC to open photobook
+      if (rightSrc?.gamepad?.buttons[0]?.pressed && !vrTriggerUsed.right) {
+        vrTriggerUsed.right = true
+        const ctrl = renderer.xr.getController(sources.indexOf(rightSrc))
+        const origin    = new THREE.Vector3()
+        const direction = new THREE.Vector3()
+        ctrl.getWorldPosition(origin)
+        ctrl.getWorldDirection(direction).negate()
+        raycaster.set(origin, direction)
+        if (raycaster.intersectObjects(npcMeshes, true).length > 0) {
+          pbManuallyClosed = false
+          openPhotobookOverlay()
+        }
+      } else if (!rightSrc?.gamepad?.buttons[0]?.pressed) {
+        vrTriggerUsed.right = false
+      }
+    } else {
+      // Book is open: left trigger → prev, right trigger → next
+      if (leftSrc?.gamepad?.buttons[0]?.pressed && !vrTriggerUsed.left) {
+        vrTriggerUsed.left = true
+        vrBookGoTo(vrSpread - 1)
+      } else if (!leftSrc?.gamepad?.buttons[0]?.pressed) {
+        vrTriggerUsed.left = false
+      }
+      if (rightSrc?.gamepad?.buttons[0]?.pressed && !vrTriggerUsed.right) {
+        vrTriggerUsed.right = true
+        vrBookGoTo(vrSpread + 1)
+      } else if (!rightSrc?.gamepad?.buttons[0]?.pressed) {
+        vrTriggerUsed.right = false
+      }
+    }
   } else {
     // ── Desktop / flat-screen mode ────────────────────────────────────────
     euler.set(pitch, yaw, 0)
@@ -559,7 +648,8 @@ renderer.setAnimationLoop(() => {
   // ── Proximity auto-popup ──────────────────────────────────────────────────
   const npcWorldPos = new THREE.Vector3(1.5, NPC_GROUND_Y, -3.5)
   const distToNpc   = camWorld.distanceTo(npcWorldPos)
-  if (!pbOpen && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
+  if (distToNpc > NPC_POPUP_CLOSE) pbManuallyClosed = false  // reset when user walks away
+  if (!pbOpen && !pbManuallyClosed && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
   if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
 
   // ── Journal orb proximity + auto-play + popup ────────────────────────────
