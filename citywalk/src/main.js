@@ -294,8 +294,13 @@ loadJournalEntries()
 // A simple humanoid figure standing in the world holding a camera.
 // Click / tap them → full-screen photobook overlay opens.
 
-// NPC_GROUND_Y: in the panorama-captured world, y=0 is eye level (~1.7 m above ground)
-const NPC_GROUND_Y = -1.7
+// NPC_GROUND_Y: vertical offset so the sprite's feet sit on the visible ground.
+// y=0 is the panorama capture eye-level; tweak this until feet touch the floor.
+const NPC_GROUND_Y   = -0.5
+
+// Proximity distances for the auto-popup photobook
+const NPC_POPUP_OPEN  = 2.5   // metres → overlay opens automatically
+const NPC_POPUP_CLOSE = 4.5   // metres → overlay closes automatically
 
 const npcGroup = new THREE.Group()
 npcGroup.position.set(1.5, NPC_GROUND_Y, -3.5)
@@ -697,6 +702,12 @@ renderer.setAnimationLoop(() => {
 
   // hint label always faces camera
   hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
+
+  // ── Proximity auto-popup ──────────────────────────────────────────────────
+  const npcWorldPos = new THREE.Vector3(1.5, NPC_GROUND_Y, -3.5)
+  const distToNpc   = camWorld.distanceTo(npcWorldPos)
+  if (!pbOpen && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
+  if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
 
   // ── Journal orb proximity + auto-play ────────────────────────────────────
   const tOrb = Date.now() * 0.003
