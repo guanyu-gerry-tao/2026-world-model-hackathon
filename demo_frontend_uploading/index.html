@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>WorldWalk — Build Your World</title>
+  <title>CityWalk — Build Your World</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -57,46 +57,134 @@
       line-height: 1.6;
     }
 
-    /* ── PHOTO GRID ── */
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+    /* ── DROP ZONE ── */
+    .drop-zone {
       width: 100%;
       max-width: 420px;
-      margin-bottom: 32px;
+      min-height: 200px;
+      border: 2px dashed rgba(167,139,250,0.35);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
     }
-    .photo-cell {
+    .drop-zone.has-photos {
+      border-color: rgba(167,139,250,0.6);
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    .drop-zone-hint {
+      font-size: 14px;
+      color: #64748b;
+      text-align: center;
+    }
+    .drop-zone-icon { font-size: 36px; }
+
+    /* Selected thumbnails inside drop zone */
+    .selected-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+    .selected-thumb {
       position: relative;
       aspect-ratio: 1;
-      border-radius: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .selected-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+    .selected-thumb .remove-badge {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.85);
+      color: #fff;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── PICKER SHEET (slides up) ── */
+    .picker-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 700;
+    }
+    .picker-overlay.open { display: block; }
+    .picker-bg {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6);
+      animation: fadeIn 0.2s ease;
+    }
+    .picker-sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #12122a;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px 40px;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .picker-handle {
+      width: 40px; height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .picker-title {
+      font-size: 17px; font-weight: 700;
+      color: #e8e8ff; margin-bottom: 16px;
+      text-align: center;
+    }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .picker-cell {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
       border: 2px solid transparent;
-      transition: border-color 0.2s, transform 0.15s;
+      transition: border-color 0.15s, transform 0.15s;
     }
-    .photo-cell img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+    .picker-cell img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
     }
-    .photo-cell .check {
+    .picker-cell .check {
       position: absolute;
-      top: 6px; right: 6px;
-      width: 24px; height: 24px;
+      top: 5px; right: 5px;
+      width: 22px; height: 22px;
       border-radius: 50%;
       background: #a78bfa;
+      color: #fff;
+      font-size: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.15s;
     }
-    .photo-cell.selected {
-      border-color: #a78bfa;
-      transform: scale(0.96);
-    }
-    .photo-cell.selected .check { opacity: 1; }
+    .picker-cell.selected { border-color: #a78bfa; transform: scale(0.95); }
+    .picker-cell.selected .check { opacity: 1; }
 
     /* ── BUTTONS ── */
     .btn {
@@ -162,22 +250,33 @@
     .status-log {
       width: 100%;
       max-width: 420px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      padding: 16px;
-      font-size: 13px;
+      padding: 8px 0;
+      font-size: 12px;
       font-family: 'SF Mono', 'Fira Code', monospace;
-      color: #64748b;
-      min-height: 120px;
+      color: #374151;
+      min-height: 80px;
       margin-bottom: 24px;
     }
     .status-log .line {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       animation: fadeIn 0.3s ease;
+      color: #374151;
     }
-    .status-log .line.active { color: #a78bfa; }
-    .status-log .line.done   { color: #34d399; }
+    .status-log .line.active { color: #4b5563; }
+    .status-log .line.done   { color: #374151; }
+
+    /* ── PROCESSING HEADLINE ── */
+    .proc-headline {
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+      margin-bottom: 32px;
+      line-height: 1.3;
+    }
 
     /* ── PANORAMA REVEAL ── */
     .panorama-wrap {
@@ -523,17 +622,41 @@
      SCREEN 1 — SELECT PHOTOS
 ═══════════════════════════════════════════════ -->
 <div class="screen active" id="screen-select">
-  <p class="logo">WorldWalk</p>
+  <p class="logo">CityWalk</p>
   <h1>Build Your World</h1>
   <p class="subtitle">Select photos from your journey.<br/>We'll turn them into a 3D world.</p>
 
-  <div class="photo-grid" id="photo-grid">
-    <!-- Populated by JS from PHOTOS config -->
+  <!-- Drop zone — shows hint or selected thumbnails -->
+  <div class="drop-zone" id="drop-zone">
+    <div id="drop-hint" style="display:flex;flex-direction:column;align-items:center;width:100%">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:10px;opacity:0.3">
+        <rect x="3" y="7" width="34" height="26" rx="4" stroke="#a78bfa" stroke-width="2"/>
+        <circle cx="13" cy="16" r="3" stroke="#a78bfa" stroke-width="2"/>
+        <path d="M3 28l9-7 6 5 5-4 14 10" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <div class="drop-zone-hint">Your selected photos will appear here</div>
+    </div>
+    <div class="selected-grid" id="selected-grid" style="display:none"></div>
   </div>
+
+  <button class="btn btn-secondary" style="margin-bottom:12px" onclick="openPicker()">
+    + Select Photos
+  </button>
 
   <button class="btn btn-primary" id="btn-upload" disabled onclick="startUpload()">
     Create My World
   </button>
+</div>
+
+<!-- ── PICKER SHEET ── -->
+<div class="picker-overlay" id="picker-overlay">
+  <div class="picker-bg" onclick="closePicker()"></div>
+  <div class="picker-sheet">
+    <div class="picker-handle"></div>
+    <div class="picker-title">Choose Photos</div>
+    <div class="picker-grid" id="picker-grid"></div>
+    <button class="btn btn-primary" onclick="confirmPicker()">Done</button>
+  </div>
 </div>
 
 <!-- ── LIGHTBOX ── -->
@@ -541,8 +664,8 @@
   <span class="lightbox-close" onclick="closeLightbox()">✕</span>
   <img id="lightbox-img" src="" alt="" />
   <div class="lightbox-actions">
-    <button class="lightbox-btn lightbox-btn-cancel" onclick="closeLightbox()">Cancel</button>
-    <button class="lightbox-btn lightbox-btn-select" id="lightbox-select-btn" onclick="confirmSelect()">Select Photo</button>
+    <button class="lightbox-btn lightbox-btn-cancel" onclick="closeLightbox()">Close</button>
+    <button class="lightbox-btn" id="lightbox-remove-btn" style="background:rgba(239,68,68,0.8);color:#fff" onclick="removeFromSelected()">Remove</button>
   </div>
 </div>
 
@@ -551,11 +674,10 @@
      SCREEN 2 — FAKE UPLOADING + PROCESSING
 ═══════════════════════════════════════════════ -->
 <div class="screen" id="screen-processing">
-  <p class="logo">WorldWalk</p>
+  <p class="logo">CityWalk</p>
   <div class="divider"></div>
 
-  <div class="step-label" id="proc-step">Step 1 of 3</div>
-  <div class="step-title" id="proc-title">Uploading Photos</div>
+  <div class="proc-headline">Your world is<br/>being created…</div>
 
   <div class="progress-wrap">
     <div class="progress-label">
@@ -575,7 +697,7 @@
      SCREEN 3 — PANORAMA REVEAL
 ═══════════════════════════════════════════════ -->
 <div class="screen" id="screen-panorama">
-  <p class="logo">WorldWalk</p>
+  <p class="logo">CityWalk</p>
   <h1>Your World is Ready</h1>
   <p class="subtitle">We built a 360° world from your photos.</p>
 
@@ -600,7 +722,7 @@
      SCREEN 4 — GENERATING WORLD (fake)
 ═══════════════════════════════════════════════ -->
 <div class="screen" id="screen-world">
-  <p class="logo">WorldWalk</p>
+  <p class="logo">CityWalk</p>
   <div class="divider"></div>
   <div class="divider"></div>
 
@@ -620,7 +742,7 @@
      SCREEN 5 — PUT ON GLASSES
 ═══════════════════════════════════════════════ -->
 <div class="screen" id="screen-glasses">
-  <p class="logo">WorldWalk</p>
+  <p class="logo">CityWalk</p>
   <div class="divider"></div>
   <div class="divider"></div>
 
@@ -639,15 +761,18 @@
   // ═══════════════════════════════════════════════
 
   const PHOTOS = [
-    { src: 'photos/photo_1.jpg', label: 'Photo 1' },
-    { src: 'photos/photo_2.jpg', label: 'Photo 2' },
-    { src: 'photos/photo_3.jpg', label: 'Photo 3' },
-    { src: 'photos/photo_4.jpg', label: 'Photo 4' },
-    { src: 'photos/photo_5.jpg', label: 'Photo 5' },
-    { src: 'photos/photo_6.jpg', label: 'Photo 6' },
+    { src: 'photos/2025-07-12-IMG_6945.jpeg',                        label: 'Photo 1' },
+    { src: 'photos/L1001707-copy.jpg',                               label: 'Photo 2' },
+    { src: 'photos/Sensoji-Tokyo-_-Best-of-Tokyo-Tour-_-1.webp',     label: 'Photo 3' },
+    { src: 'photos/image.jpg',                                       label: 'Photo 4' },
+    { src: 'photos/pexels-agk42-2816904.jpg',                        label: 'Photo 5' },
+    { src: 'photos/pexels-dsd-143941-1829980.jpg',                   label: 'Photo 6' },
+    { src: 'photos/pexels-nickkwanhk-2614818.jpg',                   label: 'Photo 7' },
+    { src: 'photos/pexels-pixabay-209798.jpg',                       label: 'Photo 8' },
+    { src: 'photos/wpsbpy2smq_depositphotos_69660331_xl-2015_1500x1500.webp', label: 'Photo 9' },
   ];
 
-  const PANORAMA_SRC = 'panorama/panorama.png'; // ← your pre-made panorama
+  const PANORAMA_SRC = 'panorama/panorama.png';
   const MUSIC_SRC = 'music/bgm.mp3';
   const DESCRIPTION_SRC = 'description/world.txt';
 
@@ -658,35 +783,97 @@
   const selected = new Set();
 
   let lightboxIndex = null;
+  // pickerTemp holds selections while picker is open
+  let pickerTemp = new Set();
 
-  function buildGrid() {
-    const grid = document.getElementById('photo-grid');
+  // ── PICKER ──
+  function buildPicker() {
+    const grid = document.getElementById('picker-grid');
     PHOTOS.forEach((p, i) => {
       const cell = document.createElement('div');
-      cell.className = 'photo-cell';
-      cell.id = 'cell-' + i;
+      cell.className = 'picker-cell' + (selected.has(i) ? ' selected' : '');
+      cell.id = 'picker-cell-' + i;
       cell.innerHTML = `
-        <img src="${p.src}" alt="${p.label}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%231e1b4b%22 width=%22200%22 height=%22200%22/><text fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2228%22>📷</text></svg>'" />
+        <img src="${p.src}" alt="${p.label}" loading="lazy"
+          onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%231e1b4b%22 width=%22200%22 height=%22200%22/><text fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2228%22>📷</text></svg>'" />
         <div class="check">✓</div>
       `;
-      cell.onclick = () => openLightbox(i);
+      cell.onclick = () => togglePickerCell(i, cell);
       grid.appendChild(cell);
     });
   }
 
+  function openPicker() {
+    pickerTemp = new Set(selected);
+    // Sync picker cell states
+    PHOTOS.forEach((_, i) => {
+      const cell = document.getElementById('picker-cell-' + i);
+      if (cell) cell.className = 'picker-cell' + (pickerTemp.has(i) ? ' selected' : '');
+    });
+    document.getElementById('picker-overlay').classList.add('open');
+  }
+
+  function closePicker() {
+    document.getElementById('picker-overlay').classList.remove('open');
+  }
+
+  function togglePickerCell(i, cell) {
+    if (pickerTemp.has(i)) {
+      pickerTemp.delete(i);
+      cell.classList.remove('selected');
+    } else {
+      pickerTemp.add(i);
+      cell.classList.add('selected');
+    }
+  }
+
+  function confirmPicker() {
+    selected.clear();
+    pickerTemp.forEach(i => selected.add(i));
+    closePicker();
+    renderDropZone();
+    document.getElementById('btn-upload').disabled = selected.size === 0;
+  }
+
+  // ── DROP ZONE ──
+  function renderDropZone() {
+    const hint = document.getElementById('drop-hint');
+    const grid = document.getElementById('selected-grid');
+    const zone = document.getElementById('drop-zone');
+    if (selected.size === 0) {
+      hint.style.display = '';
+      grid.style.display = 'none';
+      grid.innerHTML = '';
+      zone.classList.remove('has-photos');
+      return;
+    }
+    hint.style.display = 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+    zone.classList.add('has-photos');
+    selected.forEach(i => {
+      const thumb = document.createElement('div');
+      thumb.className = 'selected-thumb';
+      thumb.innerHTML = `
+        <img src="${PHOTOS[i].src}" alt="${PHOTOS[i].label}" />
+        <div class="remove-badge">✕</div>
+      `;
+      thumb.querySelector('img').onclick = () => openLightbox(i);
+      thumb.querySelector('.remove-badge').onclick = (e) => {
+        e.stopPropagation();
+        selected.delete(i);
+        renderDropZone();
+        document.getElementById('btn-upload').disabled = selected.size === 0;
+      };
+      grid.appendChild(thumb);
+    });
+  }
+
+  // ── LIGHTBOX (from drop zone — zoom + remove) ──
   function openLightbox(i) {
     lightboxIndex = i;
-    const lb = document.getElementById('lightbox');
     document.getElementById('lightbox-img').src = PHOTOS[i].src;
-    const btn = document.getElementById('lightbox-select-btn');
-    if (selected.has(i)) {
-      btn.textContent = 'Deselect Photo';
-      btn.style.background = 'rgba(239,68,68,0.8)';
-    } else {
-      btn.textContent = 'Select Photo';
-      btn.style.background = '';
-    }
-    lb.classList.add('open');
+    document.getElementById('lightbox').classList.add('open');
   }
 
   function closeLightbox(e) {
@@ -695,20 +882,13 @@
     lightboxIndex = null;
   }
 
-  function confirmSelect() {
+  function removeFromSelected() {
     if (lightboxIndex === null) return;
-    const i = lightboxIndex;
-    const cell = document.getElementById('cell-' + i);
-    if (selected.has(i)) {
-      selected.delete(i);
-      cell.classList.remove('selected');
-    } else {
-      selected.add(i);
-      cell.classList.add('selected');
-    }
-    document.getElementById('btn-upload').disabled = selected.size === 0;
+    selected.delete(lightboxIndex);
     document.getElementById('lightbox').classList.remove('open');
     lightboxIndex = null;
+    renderDropZone();
+    document.getElementById('btn-upload').disabled = selected.size === 0;
   }
 
   // ═══════════════════════════════════════════════
@@ -817,48 +997,42 @@
     showScreen('screen-processing');
 
     // ── Step 1: Upload ──
-    document.getElementById('proc-step').textContent = 'Step 1 of 3';
-    document.getElementById('proc-title').textContent = 'Uploading Photos';
     addLog('▶ Connecting to server...');
-    await sleep(800);
+    await sleep(500);
     addLog('▶ Uploading ' + selected.size + ' photo(s)...');
-    for (let p = 0; p <= 100; p += 8) {
+    for (let p = 0; p <= 100; p += 10) {
       setProgress(Math.min(p, 100), 'Uploading...');
-      await sleep(120);
+      await sleep(80);
     }
     addLog('✓ Upload complete', 'done');
-    await sleep(400);
+    await sleep(300);
 
     // ── Step 2: Generating panorama ──
-    document.getElementById('proc-step').textContent = 'Step 2 of 3';
-    document.getElementById('proc-title').textContent = 'Generating Panorama';
     setProgress(0, 'Analyzing photos...');
     addLog('▶ Analyzing scene composition...');
-    await sleep(1200);
+    await sleep(700);
     addLog('▶ Generating 360° panorama with AI...');
     for (let p = 0; p <= 75; p += 3) {
       setProgress(Math.min(p, 75), 'AI generating...');
-      await sleep(180);
+      await sleep(80);
     }
     addLog('▶ Refining image quality...');
     for (let p = 75; p <= 100; p += 5) {
       setProgress(Math.min(p, 100), 'Refining...');
-      await sleep(150);
+      await sleep(80);
     }
     addLog('✓ Panorama ready', 'done');
-    await sleep(500);
+    await sleep(300);
 
     // ── Step 3: Finalizing ──
-    document.getElementById('proc-step').textContent = 'Step 3 of 3';
-    document.getElementById('proc-title').textContent = 'Finalizing';
     setProgress(0, 'Finalizing...');
     addLog('▶ Packaging your world...');
-    for (let p = 0; p <= 100; p += 12) {
+    for (let p = 0; p <= 100; p += 15) {
       setProgress(Math.min(p, 100), 'Almost done...');
-      await sleep(100);
+      await sleep(70);
     }
     addLog('✓ Done!', 'done');
-    await sleep(600);
+    await sleep(400);
 
     // Reveal panorama
     document.getElementById('panorama-img').src = PANORAMA_SRC;
@@ -878,14 +1052,14 @@
     const fill = document.getElementById('world-prog-fill');
     for (let p = 0; p <= 100; p += 1) {
       fill.style.width = p + '%';
-      await sleep(60); // ~6 seconds total
+      await sleep(30); // ~3 seconds total
     }
 
     showScreen('screen-glasses');
   }
 
   // ── Init ──
-  buildGrid();
+  buildPicker();
 </script>
 
 </body>
