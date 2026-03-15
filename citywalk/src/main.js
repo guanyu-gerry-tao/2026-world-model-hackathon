@@ -290,6 +290,177 @@ async function loadJournalEntries() {
 
 loadJournalEntries()
 
+// ─── Photographer NPC ────────────────────────────────────────────────────────
+// A simple humanoid figure standing in the world holding a camera.
+// Click / tap them → full-screen photobook overlay opens.
+
+const npcGroup = new THREE.Group()
+npcGroup.position.set(1.5, 0, -3.5)
+scene.add(npcGroup)
+
+const npcMeshes = []   // collected for raycasting
+function npcPart(geo, color, x, y, z, rx = 0, ry = 0, rz = 0) {
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }))
+  m.position.set(x, y, z)
+  m.rotation.set(rx, ry, rz)
+  npcGroup.add(m)
+  npcMeshes.push(m)
+  return m
+}
+
+const SKIN  = 0xf5c5a3
+const COAT  = 0x1e3a5c   // dark navy jacket
+const PANTS = 0x2a2a2a
+const SHOE  = 0x111111
+const CAM   = 0x222222
+
+// shoes
+npcPart(new THREE.BoxGeometry(0.09, 0.045, 0.15), SHOE, -0.075, 0.022, 0.06)
+npcPart(new THREE.BoxGeometry(0.09, 0.045, 0.15), SHOE,  0.075, 0.022, 0.06)
+// legs
+npcPart(new THREE.CylinderGeometry(0.055, 0.06, 0.50), PANTS, -0.075, 0.295, 0)
+npcPart(new THREE.CylinderGeometry(0.055, 0.06, 0.50), PANTS,  0.075, 0.295, 0)
+// torso
+npcPart(new THREE.CylinderGeometry(0.115, 0.135, 0.44), COAT, 0, 0.77, 0)
+// neck
+npcPart(new THREE.CylinderGeometry(0.045, 0.045, 0.10), SKIN, 0, 1.04, 0)
+// head
+npcPart(new THREE.SphereGeometry(0.135, 12, 10), SKIN, 0, 1.20, 0)
+// hair (dark cap sitting on top)
+npcPart(new THREE.SphereGeometry(0.142, 12, 7),  0x1a0a00, 0, 1.26, -0.01)
+// left arm — relaxed at side
+npcPart(new THREE.CylinderGeometry(0.038, 0.038, 0.38), COAT, -0.20, 0.77, 0, 0, 0,  0.14)
+npcPart(new THREE.SphereGeometry(0.042, 6, 6), SKIN, -0.23, 0.58, 0)  // left hand
+// right arm — raised, angled forward to hold camera
+npcPart(new THREE.CylinderGeometry(0.038, 0.038, 0.36), COAT,  0.20, 0.85, -0.08, -0.9, 0, -0.22)
+npcPart(new THREE.SphereGeometry(0.042, 6, 6), SKIN,  0.29, 1.01, -0.24)  // right hand
+
+// camera body
+npcPart(new THREE.BoxGeometry(0.13, 0.09, 0.08), CAM,   0.29, 1.02, -0.30)
+// camera lens (cylinder pointing forward)
+npcPart(new THREE.CylinderGeometry(0.026, 0.030, 0.06), 0x334455,
+        0.29, 1.02, -0.34, Math.PI / 2, 0, 0)
+// tiny viewfinder bump on top of camera
+npcPart(new THREE.BoxGeometry(0.04, 0.025, 0.025), 0x111111, 0.29, 1.073, -0.295)
+
+// Rotate so NPC faces roughly toward the player spawn (origin)
+npcGroup.rotation.y = Math.atan2(
+  0 - npcGroup.position.x,
+  0 - npcGroup.position.z,
+)
+
+// Floating "click me" hint label above head
+const hintTex = makeCanvasTex(400, 52, ctx => {
+  ctx.clearRect(0, 0, 400, 52)
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'
+  ctx.beginPath(); ctx.roundRect(0, 4, 400, 44, 10); ctx.fill()
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 22px sans-serif'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('📷  Click to view photos', 200, 26)
+})
+const hintBillboard = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.72, 0.094),
+  new THREE.MeshBasicMaterial({ map: hintTex, transparent: true, opacity: 0, depthWrite: false }),
+)
+hintBillboard.position.set(0, 1.55, 0)
+npcGroup.add(hintBillboard)
+
+// ─── Photobook overlay controller ────────────────────────────────────────────
+
+const pbOverlay  = document.getElementById('pb-overlay')
+const pbImgL     = document.getElementById('pb-img-left')
+const pbImgR     = document.getElementById('pb-img-right')
+const pbCapL     = document.getElementById('pb-cap-left')
+const pbCapR     = document.getElementById('pb-cap-right')
+const pbNumL     = document.getElementById('pb-num-left')
+const pbNumR     = document.getElementById('pb-num-right')
+const pbSpread   = document.getElementById('pb-spread')
+const pbDotsEl   = document.getElementById('pb-dots')
+
+// Build dots
+SPREADS.forEach((_, i) => {
+  const d = document.createElement('div')
+  d.className = 'pb-dot' + (i === 0 ? ' active' : '')
+  d.addEventListener('click', () => pbGoTo(i))
+  pbDotsEl.appendChild(d)
+})
+
+let pbCurrentSpread = 0
+let pbOpen = false
+
+function pbPopulate(index) {
+  const spread = SPREADS[index]
+  pbImgL.src  = spread[0].url;  pbCapL.textContent = spread[0].caption
+  pbImgR.src  = spread[1].url;  pbCapR.textContent = spread[1].caption
+  pbNumL.textContent = String(index * 2 + 1)
+  pbNumR.textContent = String(index * 2 + 2)
+  pbDotsEl.querySelectorAll('.pb-dot').forEach((d, i) =>
+    d.classList.toggle('active', i === index))
+}
+
+function pbGoTo(index, dir = 1) {
+  pbCurrentSpread = (index + SPREADS.length) % SPREADS.length
+  pbSpread.classList.remove('flip-in')
+  pbSpread.classList.add('flip-out')
+  setTimeout(() => {
+    pbPopulate(pbCurrentSpread)
+    pbSpread.classList.remove('flip-out')
+    void pbSpread.offsetWidth   // reflow to restart animation
+    pbSpread.classList.add('flip-in')
+  }, 220)
+}
+
+function openPhotobookOverlay() {
+  pbCurrentSpread = 0
+  pbPopulate(0)
+  pbSpread.classList.remove('flip-out', 'flip-in')
+  pbOverlay.classList.add('open')
+  pbOpen = true
+}
+
+function closePhotobookOverlay() {
+  pbOverlay.classList.remove('open')
+  pbOpen = false
+}
+
+document.getElementById('pb-prev').addEventListener('click',  () => pbGoTo(pbCurrentSpread - 1, -1))
+document.getElementById('pb-next').addEventListener('click',  () => pbGoTo(pbCurrentSpread + 1,  1))
+document.getElementById('pb-close').addEventListener('click', closePhotobookOverlay)
+window.addEventListener('keydown', e => { if (e.code === 'Escape' && pbOpen) closePhotobookOverlay() })
+
+// ─── Raycaster for NPC click ──────────────────────────────────────────────────
+
+const raycaster  = new THREE.Raycaster()
+const mousePick  = new THREE.Vector2()
+
+// Track mouse-down position to distinguish clicks from drags
+let mouseDownX = 0, mouseDownY = 0
+
+renderer.domElement.addEventListener('mousedown', e => { mouseDownX = e.clientX; mouseDownY = e.clientY })
+
+renderer.domElement.addEventListener('click', e => {
+  // Ignore if this was actually a drag
+  if (Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY) > 6) return
+  // Ignore if photobook overlay is already open
+  if (pbOpen) return
+
+  mousePick.x = (e.clientX / window.innerWidth)  *  2 - 1
+  mousePick.y = (e.clientY / window.innerHeight) * -2 + 1
+  raycaster.setFromCamera(mousePick, camera)
+  if (raycaster.intersectObjects(npcMeshes).length > 0) openPhotobookOverlay()
+})
+
+// Change cursor to pointer when hovering over NPC
+renderer.domElement.addEventListener('mousemove', e => {
+  if (pbOpen || dragging) return
+  mousePick.x = (e.clientX / window.innerWidth)  *  2 - 1
+  mousePick.y = (e.clientY / window.innerHeight) * -2 + 1
+  raycaster.setFromCamera(mousePick, camera)
+  const hit = raycaster.intersectObjects(npcMeshes).length > 0
+  document.body.classList.toggle('npc-hover', hit)
+  hintBillboard.material.opacity = hit ? 1 : 0
+})
+
 // ─── Mouse-drag look + WASD move ─────────────────────────────────────────────
 
 let yaw = 0, pitch = 0
@@ -547,8 +718,17 @@ renderer.setAnimationLoop(() => {
   leftCapMat.opacity   = rightCapMat.opacity   = p
   hintMat.opacity    = p * (SPREADS.length > 1 ? 1 : 0)
 
+  // ── NPC idle animation ────────────────────────────────────────────────────
+  const t = Date.now() * 0.001
+  // Subtle breathing bob + gentle camera-raise sway
+  npcGroup.position.y = Math.sin(t * 0.9) * 0.008
+  npcGroup.rotation.z = Math.sin(t * 0.6) * 0.012
+
+  // hint label always faces camera (billboard on Y only)
+  hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
+
   // ── Journal orb proximity + auto-play ────────────────────────────────────
-  const t = Date.now() * 0.003
+  const tOrb = Date.now() * 0.003
   for (const item of journalOrbs) {
     const dist = camWorld.distanceTo(item.orb.position)
 
@@ -557,7 +737,7 @@ renderer.setAnimationLoop(() => {
 
     // Pulse scale when player is nearby
     const near  = dist < JOURNAL_TRIGGER_DIST * 2
-    const pulse = near ? 1 + 0.2 * Math.sin(t + item.orb.position.x) : 1
+    const pulse = near ? 1 + 0.2 * Math.sin(tOrb + item.orb.position.x) : 1
     item.orb.scale.setScalar(pulse)
 
     // Auto-play voice when player enters trigger radius
