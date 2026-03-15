@@ -3,13 +3,13 @@ import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
 import sharp from "sharp";
-import { generatePanorama as generatePanoramaGemini, refinePanorama } from "../services/gemini-panorama.js";
+import { generatePanorama as generatePanoramaGemini, describePhotos } from "../services/gemini-panorama.js";
 import { generatePanorama as generatePanoramaOpenAI } from "../services/openai-panorama.js";
 import { runMarblePipeline, downloadSpz } from "../services/marble.js";
 
-// Resize buffer to exact 2:1 equirectangular (2048x1024) for Marble
+// Resize buffer to exact 2:1 equirectangular (4096x2048) for Marble
 async function toEquirectangular(buffer) {
-  return sharp(buffer).resize(2048, 1024, { fit: "fill" }).png().toBuffer();
+  return sharp(buffer).resize(4096, 2048, { fit: "fill" }).png().toBuffer();
 }
 
 const router = express.Router();
@@ -74,9 +74,10 @@ router.post(
       cityId = "city-" + jobId,
       quality = "fast",
       provider = "gemini",
+      describe = "false",
     } = req.body;
 
-    runPanoramaJob({ jobId, photos, template: req.files?.template?.[0], description, cityId, quality, provider });
+    runPanoramaJob({ jobId, photos, template: req.files?.template?.[0], description, cityId, quality, provider, describe: describe === "true" });
 
     res.json({ jobId });
   }
@@ -125,11 +126,18 @@ router.get("/status/:jobId", (req, res) => {
 // Async workers
 // ---------------------------------------------------------------------------
 
-async function runPanoramaJob({ jobId, photos, template, description, cityId, quality, provider = "gemini" }) {
+async function runPanoramaJob({ jobId, photos, template, description, cityId, quality, provider = "gemini", describe = false }) {
   const uploadedPaths = photos.map((f) => f.path);
   const templatePath = template?.path ?? null;
 
   try {
+    // Describe each photo for music generation (opt-in via describe=true)
+    let photoDescriptions = null;
+    if (describe) {
+      updateJob(jobId, { status: "generating_panorama", progress: "Describing photos..." });
+      photoDescriptions = await describePhotos(uploadedPaths);
+    }
+
     updateJob(jobId, { status: "generating_panorama", progress: `Calling ${provider === "openai" ? "OpenAI" : "Gemini"}...` });
 
     const rawBuffer = provider === "openai"
@@ -144,12 +152,8 @@ async function runPanoramaJob({ jobId, photos, template, description, cityId, qu
     fs.writeFileSync(rawPath, rawBuffer);
     console.log(`[pipeline] Raw panorama saved → ${rawPath}`);
 
-    // Auto-refine (Gemini only; OpenAI output passes through unchanged)
+    // Auto-refine disabled
     let panoramaBuffer = rawBuffer;
-    if (provider === "gemini") {
-      updateJob(jobId, { progress: "Refining panorama..." });
-      panoramaBuffer = await refinePanorama({ buffer: rawBuffer });
-    }
 
     // Resize to exact 2:1 equirectangular (2048x1024) so Marble treats it as a full 360°
     updateJob(jobId, { progress: "Resizing to equirectangular..." });
@@ -159,6 +163,10 @@ async function runPanoramaJob({ jobId, photos, template, description, cityId, qu
     fs.writeFileSync(panoramaPath, panoramaBuffer);
     console.log(`[pipeline] Panorama saved (2048x1024) → ${panoramaPath}`);
 
+    const descriptionsPath = path.join(outputDir, "photo_descriptions.json");
+    fs.writeFileSync(descriptionsPath, JSON.stringify(photoDescriptions, null, 2));
+    console.log(`[pipeline] Photo descriptions saved → ${descriptionsPath}`);
+
     updateJob(jobId, {
       status: "done",
       progress: null,
@@ -167,6 +175,8 @@ async function runPanoramaJob({ jobId, photos, template, description, cityId, qu
         panoramaPath,
         panoramaUrl: `/output/${cityId}/panorama.png`,
         panoramaRawUrl: `/output/${cityId}/panorama_raw.png`,
+        descriptionsUrl: `/output/${cityId}/photo_descriptions.json`,
+        photoDescriptions,
       },
     });
   } catch (err) {

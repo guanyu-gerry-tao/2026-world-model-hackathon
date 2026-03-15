@@ -64,32 +64,44 @@ PROMPT_A_END
 
 ```
 PROMPT_B_START
-THIS IS A 360° EQUIRECTANGULAR PANORAMA. THE OUTPUT MUST BE A FULL 360° EQUIRECTANGULAR IMAGE WITH 2:1 ASPECT RATIO. THIS IS NOT A REGULAR PHOTO. THE ENTIRE 360° SCENE MUST WRAP SEAMLESSLY FROM LEFT EDGE TO RIGHT EDGE.
+You are creating a 360° equirectangular panorama of a dreamworld — a surreal, impossible space that feels like a memory collapsing in on itself. The visual language is that of Inception: photorealistic in every detail, but physically impossible as a whole.
 
-Style: Japanese anime film — specifically Makoto Shinkai (Your Name, Weathering With You). Key visual characteristics:
-- Crisp, defined outlines on all architecture and objects — clean anime linework
-- Dramatic, volumetric lighting: god rays, glowing windows, neon reflections on wet pavement, light bloom
-- Rich color contrast: deep indigo/purple sky against warm golden lights, vivid neon signs
-- Highly detailed backgrounds in the style of Japanese anime key art — every building has texture and depth
-- Cinematic atmosphere: lens flare, light particles, depth of field haze on distant elements
-Every frame must look like a production still from a Makoto Shinkai film.
+You will receive several personal photos. These are memory fragments. Embed them into the dreamworld as portals, reflections, cracked windows, or architectural surfaces — not as flat pasted images, but as living parts of the space.
 
-You will receive personal photos. ALL buildings, landmarks, and landscapes from the photos MUST appear in the output — do not ignore any photo.
+DREAM SPACE CONCEPT:
+- The space is a grand, impossible plaza where the laws of gravity and geometry have been rewritten
+- Different environments from the input photos exist simultaneously in the same space: a street curves upward and becomes a ceiling, a building from one photo grows out of the side of a building from another, a landscape is reflected upside-down in a mirrored floor
+- The viewer stands at the center of this folded world, surrounded by architecture that curves, folds, and mirrors itself in every direction
+- Massive scale: columns, arches, and structures tower far above the viewer, making them feel small
 
-CRITICAL — blend them organically: do NOT place each photo as its own isolated section. Instead, weave the architecture and scenery from all photos together into one continuous world. Buildings from different photos should coexist naturally in the same streetscape, with shared lighting and atmosphere. No hard vertical boundaries between elements from different photos.
+MEMORY FRAGMENTS — HOW TO USE EACH PHOTO:
+- Each input photo becomes one distinct embedded element in the space: a giant cracked mirror showing that scene, a window in a curved wall looking into that world, a floor or ceiling panel reflecting that environment, or architectural surfaces textured with that scene
+- Distribute them evenly around the 360° so each photo has equal visual presence
+- They should feel like glimpses into other dream layers — recognizable but distorted, as if seen through glass, water, or fractured light
 
-CAMERA POSITION (critical):
-- The camera is placed at the CENTER of a large open plaza or courtyard. The viewer stands in the middle of an open space.
-- ALL buildings are at a DISTANCE — surrounding the plaza from the outside. No building is directly next to the camera.
-- Because the camera is in the middle of an open space, a large empty ground plane fills the foreground in all directions.
-- The horizon (where buildings meet sky) sits at roughly 45% from the top.
-- The bottom 45% of the image is mostly open ground — plaza, cobblestone, or pavement — with buildings visible only in the distance above the horizon.
+VISUAL LANGUAGE:
+- Photorealistic rendering throughout — every surface has real texture, real light, real shadow
+- Lighting is dramatic and mysterious: multiple light sources of different colors and temperatures, long shadows, god-rays through impossible skylights, reflections multiplied across mirror surfaces
+- Atmosphere: a fine mist or dust in the air, giving depth and a sense of unreality
+- Color palette: deep rich tones — midnight blue, warm amber, cold silver — with moments of saturated color from the memory fragments
+- The mood is melancholic, vast, and cinematic — like the Paris fold scene, the mirror maze, or the limbo city of Inception
 
-EDGES:
-- Fill the entire width with buildings, architecture, and scenery — no empty zones at the edges
-- Left and right edges must match in tone and content so the 360° wrap is seamless
+IMPOSSIBLE GEOMETRY (encouraged):
+- Streets or corridors that visibly curve upward into the sky at the edges of the scene
+- Buildings reflected overhead in curved mirrored ceilings or inverted above the horizon
+- Staircases that loop back on themselves
+- A ground that transitions from stone to water to glass, each section reflecting a different memory
 
-STYLE: Makoto Shinkai anime — crisp outlines, dramatic god-ray lighting, glowing neon and warm window light, deep indigo sky, wet reflective pavement, light bloom and particles. Mood: cinematic, nostalgic, breathtakingly beautiful. No people.
+TECHNICAL RULES (required for 3D reconstruction):
+- Viewpoint: camera at 1.6 meters above the ground, standing in the center, looking straight ahead
+- Horizon: at exactly 50% of the image height — flat and level. The impossible architecture lives above AND below this line
+- Ground: a continuous floor plane visible below the horizon with equirectangular perspective (wider toward bottom center) — it can be mirrored, cracked, flooded, or textured, but must be flat and readable as ground
+- Sky/upper half: fills the top 50% — can show inverted architecture, a dreamlike sky, or reflected cityscapes, but no hard horizontal banding
+- Seam: leftmost and rightmost 15% must be soft and compatible in tone — use mist, open space, or distant architecture — so the 360° wrap is invisible
+- One seamless continuous image — the impossible geometry is painted in, not composited
+
+People:
+- No human figures, faces, or silhouettes anywhere. The world is empty, waiting.
 
 Output: image only, no text.
 
@@ -97,7 +109,7 @@ Description: {{DESCRIPTION}}
 PROMPT_B_END
 ```
 
-**Default description:** `A magical anime world, golden hour light, lush and painterly, empty of people`
+**Default description:** `A surreal dreamworld, vast and melancholic, empty of people`
 
 ---
 
@@ -107,32 +119,24 @@ PROMPT_B_END
 
 ```
 PROMPT_REFINE_START
-THIS OUTPUT MUST BE A 360° EQUIRECTANGULAR PANORAMA with a 2:1 aspect ratio. The left and right edges must wrap seamlessly.
+You are an expert 360° equirectangular panorama retoucher.
 
-You will receive a panorama image. You MUST make ALL of the following changes unconditionally — do not skip any step even if the image looks acceptable to you.
+You will receive a 360° equirectangular panorama image that may contain defects. Your task is to output a corrected version of the same image.
 
-THINK OF THE IMAGE AS A GRID. The image has a height H. The midpoint is at H/2 — this is the HARD DIVIDING LINE.
+Fix these types of defects if present:
+- Visible seam at the left/right edge where the 360° wrap joins — blend it seamlessly
+- Blurry, smeared, or low-detail patches anywhere in the image
+- Incorrect horizon line — if the horizon sits above or below 50% of the image height, shift the entire scene vertically until the horizon lands at exactly 50%; fill any exposed strip at the top or bottom by extending the sky or ground content naturally to match the adjacent pixels
+- Perspective distortion: the ground should appear flat with correct equirectangular warping (wider at bottom center), NOT a bird's-eye view or tilted angle
+- Any human figures, faces, or body parts that appear — replace with environmental elements
+- Color banding, gradient artifacts, or hard horizontal cuts in the sky
+- Objects or structures bleeding into the edge zones (leftmost/rightmost 15%) — replace with open sky, soft clouds, or empty ground
 
-RULE 1 — THE DIVIDING LINE IS ABSOLUTE:
-- Rows 0 to H/2 (TOP HALF): sky and buildings only
-- Rows H/2 to H (BOTTOM HALF): flat ground only — no exceptions
-- The dividing line at H/2 is the horizon. It must be a clean, flat, horizontal line across the full width.
-
-STEP 1 — ENFORCE THE BOTTOM HALF (DO THIS FIRST):
-Look at every row in the bottom half of the image (rows H/2 to H). If any row contains a building, wall, facade, window, door, or any man-made vertical structure — ERASE IT and replace with ground texture (pavement, stone, grass, or dirt) matching the surrounding ground. The bottom half must contain ONLY flat ground. Do this row by row until the entire bottom half is clean ground.
-
-STEP 2 — ENFORCE THE HORIZON LINE:
-The boundary between top half and bottom half must be a visible, clean, flat horizon line. Sky and buildings above. Ground below. No blending of buildings into the ground zone.
-
-STEP 3 — VERTICAL CUTS (MANDATORY):
-Find every hard vertical boundary, sharp edge, or abrupt transition between sections in the image. Repaint and blend all of them — extend textures, match lighting across the boundary, and make the full image look like one continuous scene with zero visible vertical seams.
-
-STEP 4 — OTHER:
-- Blend left/right edges so the 360° wrap is invisible
-- Remove any human figures — replace with environment
-- Fix sky banding, blurry patches, or color artifacts
-
-Output: the full corrected image at the same 2:1 aspect ratio. Image only, no text.
+Rules:
+- Do NOT change the overall composition, scene content, style, or color mood
+- Do NOT add new objects or architectural elements that weren't in the original
+- Output the full corrected image at the same 2:1 aspect ratio
+- Image only, no text
 PROMPT_REFINE_END
 ```
 
