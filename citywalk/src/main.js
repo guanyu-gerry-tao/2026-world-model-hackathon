@@ -4,7 +4,7 @@ import { SplatMesh } from '@sparkjsdev/spark'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const SPLAT_URL = '/benchmark/test-gemini-20260315000644/world.spz'
+const SPLAT_URL = '/benchmark/test-gemini-20260315065249/world.spz'
 
 // ─── Renderer ────────────────────────────────────────────────────────────────
 
