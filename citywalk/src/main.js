@@ -299,55 +299,22 @@ npcGroup.position.set(1.5, 0, -3.5)
 scene.add(npcGroup)
 
 const npcMeshes = []   // collected for raycasting
-function npcPart(geo, color, x, y, z, rx = 0, ry = 0, rz = 0) {
-  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }))
-  m.position.set(x, y, z)
-  m.rotation.set(rx, ry, rz)
-  npcGroup.add(m)
-  npcMeshes.push(m)
-  return m
-}
 
-const SKIN  = 0xf5c5a3
-const COAT  = 0x1e3a5c   // dark navy jacket
-const PANTS = 0x2a2a2a
-const SHOE  = 0x111111
-const CAM   = 0x222222
-
-// shoes
-npcPart(new THREE.BoxGeometry(0.09, 0.045, 0.15), SHOE, -0.075, 0.022, 0.06)
-npcPart(new THREE.BoxGeometry(0.09, 0.045, 0.15), SHOE,  0.075, 0.022, 0.06)
-// legs
-npcPart(new THREE.CylinderGeometry(0.055, 0.06, 0.50), PANTS, -0.075, 0.295, 0)
-npcPart(new THREE.CylinderGeometry(0.055, 0.06, 0.50), PANTS,  0.075, 0.295, 0)
-// torso
-npcPart(new THREE.CylinderGeometry(0.115, 0.135, 0.44), COAT, 0, 0.77, 0)
-// neck
-npcPart(new THREE.CylinderGeometry(0.045, 0.045, 0.10), SKIN, 0, 1.04, 0)
-// head
-npcPart(new THREE.SphereGeometry(0.135, 12, 10), SKIN, 0, 1.20, 0)
-// hair (dark cap sitting on top)
-npcPart(new THREE.SphereGeometry(0.142, 12, 7),  0x1a0a00, 0, 1.26, -0.01)
-// left arm — relaxed at side
-npcPart(new THREE.CylinderGeometry(0.038, 0.038, 0.38), COAT, -0.20, 0.77, 0, 0, 0,  0.14)
-npcPart(new THREE.SphereGeometry(0.042, 6, 6), SKIN, -0.23, 0.58, 0)  // left hand
-// right arm — raised, angled forward to hold camera
-npcPart(new THREE.CylinderGeometry(0.038, 0.038, 0.36), COAT,  0.20, 0.85, -0.08, -0.9, 0, -0.22)
-npcPart(new THREE.SphereGeometry(0.042, 6, 6), SKIN,  0.29, 1.01, -0.24)  // right hand
-
-// camera body
-npcPart(new THREE.BoxGeometry(0.13, 0.09, 0.08), CAM,   0.29, 1.02, -0.30)
-// camera lens (cylinder pointing forward)
-npcPart(new THREE.CylinderGeometry(0.026, 0.030, 0.06), 0x334455,
-        0.29, 1.02, -0.34, Math.PI / 2, 0, 0)
-// tiny viewfinder bump on top of camera
-npcPart(new THREE.BoxGeometry(0.04, 0.025, 0.025), 0x111111, 0.29, 1.073, -0.295)
-
-// Rotate so NPC faces roughly toward the player spawn (origin)
-npcGroup.rotation.y = Math.atan2(
-  0 - npcGroup.position.x,
-  0 - npcGroup.position.z,
-)
+// Load the photographer photo as a billboard sprite.
+// Aspect ratio is read from the image so the plane always matches it.
+new THREE.TextureLoader().load('/npc.png', tex => {
+  tex.colorSpace = THREE.SRGBColorSpace
+  const aspect  = tex.image.width / tex.image.height
+  const NPC_H   = 1.6                   // metres tall in the world
+  const NPC_W   = NPC_H * aspect
+  const sprite  = new THREE.Mesh(
+    new THREE.PlaneGeometry(NPC_W, NPC_H),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08 }),
+  )
+  sprite.position.y = NPC_H / 2        // feet on the ground
+  npcGroup.add(sprite)
+  npcMeshes.push(sprite)
+})
 
 // Floating "click me" hint label above head
 const hintTex = makeCanvasTex(400, 52, ctx => {
@@ -718,13 +685,14 @@ renderer.setAnimationLoop(() => {
   leftCapMat.opacity   = rightCapMat.opacity   = p
   hintMat.opacity    = p * (SPREADS.length > 1 ? 1 : 0)
 
-  // ── NPC idle animation ────────────────────────────────────────────────────
+  // ── NPC billboard + idle animation ───────────────────────────────────────
   const t = Date.now() * 0.001
-  // Subtle breathing bob + gentle camera-raise sway
-  npcGroup.position.y = Math.sin(t * 0.9) * 0.008
-  npcGroup.rotation.z = Math.sin(t * 0.6) * 0.012
+  // Always face the camera (billboard on Y axis)
+  npcGroup.lookAt(camWorld.x, npcGroup.position.y, camWorld.z)
+  // Subtle breathing bob
+  npcGroup.position.y = Math.sin(t * 0.9) * 0.007
 
-  // hint label always faces camera (billboard on Y only)
+  // hint label always faces camera
   hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
 
   // ── Journal orb proximity + auto-play ────────────────────────────────────
