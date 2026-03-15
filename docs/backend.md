@@ -196,6 +196,39 @@ GET /health
 
 ---
 
+### Text-to-Speech（日记朗读 · ElevenLabs）
+
+```http
+POST /tts
+Content-Type: application/json
+```
+
+将日记/感想文字转为语音（MP3），用于前端「朗读日记」功能。
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `text` | string | ✅ | 要朗读的文本 |
+| `languageCode` | string | No | 语言代码，如 `"zh"` 中文、`"en"` 英文；不传则自动 |
+
+**Response:** `Content-Type: audio/mpeg`，直接播放或保存为 .mp3。
+
+**前端示例：**
+```javascript
+const res = await fetch("http://localhost:3001/tts", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ text: "今天在涩谷的回忆，永远留在心里。", languageCode: "zh" }),
+});
+const blob = await res.blob();
+const url = URL.createObjectURL(blob);
+const audio = new Audio(url);
+audio.play();
+```
+
+**环境变量：** 需在 `.env` 中设置 `ELEVENLABS_API_KEY`（见 [ElevenLabs](https://elevenlabs.io)）。未配置时接口返回 503。
+
+---
+
 ## Quick Start
 
 ```bash
@@ -224,6 +257,8 @@ node test-world-model.js --city <cityId> --text-prompt "Cinematic city, golden h
 |----------|-------------|----------|
 | `GEMINI_API_KEY` | Google AI Studio key | Yes (real mode) |
 | `MARBLE_API_KEY` | World Labs key (from worldlabs.ai platform) | Yes (real mode) |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key（日记 TTS） | No（不配则 POST /tts 返回 503） |
+| `ELEVENLABS_VOICE_ID` | 可选，指定语音 ID | No |
 | `PORT` | Server port, default `3001` | No |
 | `USE_MOCK` | `true` = skip all real API calls, return fake data | No |
 
@@ -246,11 +281,13 @@ backend/
 │       └── world.spz             # Marble Gaussian Splat
 └── src/
     ├── routes/
-    │   └── pipeline.js           # all /pipeline routes + job management
+    │   ├── pipeline.js           # all /pipeline routes + job management
+    │   └── tts.js                # POST /tts — diary text to speech
     ├── services/
     │   ├── gemini-panorama.js    # Gemini image generation + refinement
     │   ├── marble.js             # Marble upload + world generation + polling
-    │   └── openai-panorama.js    # OpenAI provider (fallback)
+    │   ├── openai-panorama.js    # OpenAI provider (fallback)
+    │   └── elevenlabs-tts.js     # ElevenLabs text-to-speech（日记朗读）
     ├── prompts/
     │   └── panorama.md           # Gemini prompts (Mode A, Mode B, Refine)
     └── mock/
