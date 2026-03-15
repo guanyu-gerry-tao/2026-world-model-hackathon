@@ -36,6 +36,57 @@ window.addEventListener('mousemove', e => {
   lastX  = e.clientX; lastY = e.clientY
 })
 
+// ─── Touch look + Pinch-to-zoom FOV ─────────────────────────────────────────
+
+const FOV_MIN = 30
+const FOV_MAX = 120
+
+let lastTouchX = 0, lastTouchY = 0
+let lastPinchDist = null
+
+function pinchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX
+  const dy = touches[0].clientY - touches[1].clientY
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+renderer.domElement.addEventListener('touchstart', e => {
+  e.preventDefault()
+  if (e.touches.length === 1) {
+    lastTouchX = e.touches[0].clientX
+    lastTouchY = e.touches[0].clientY
+    lastPinchDist = null
+  } else if (e.touches.length === 2) {
+    lastPinchDist = pinchDist(e.touches)
+  }
+}, { passive: false })
+
+renderer.domElement.addEventListener('touchmove', e => {
+  e.preventDefault()
+  if (e.touches.length === 1 && lastPinchDist === null) {
+    // Single-finger drag to look around
+    yaw   -= (e.touches[0].clientX - lastTouchX) * 0.003
+    pitch -= (e.touches[0].clientY - lastTouchY) * 0.003
+    pitch  = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch))
+    lastTouchX = e.touches[0].clientX
+    lastTouchY = e.touches[0].clientY
+  } else if (e.touches.length === 2) {
+    // Two-finger pinch to zoom (adjust FOV)
+    const dist = pinchDist(e.touches)
+    if (lastPinchDist !== null) {
+      const delta = lastPinchDist - dist  // positive = pinch in = zoom out
+      camera.fov = Math.max(FOV_MIN, Math.min(FOV_MAX, camera.fov + delta * 0.1))
+      camera.updateProjectionMatrix()
+    }
+    lastPinchDist = dist
+  }
+}, { passive: false })
+
+renderer.domElement.addEventListener('touchend', e => {
+  if (e.touches.length < 2) lastPinchDist = null
+  if (e.touches.length === 0) { lastTouchX = 0; lastTouchY = 0 }
+})
+
 // WASD + arrow keys movement
 const keys = {}
 window.addEventListener('keydown', e => { keys[e.code] = true })
