@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Journal — CityWalk</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a12;
+      color: #e8e8f0;
+      min-height: 100vh;
+      padding: 24px 16px 64px;
+    }
+
+    .container { max-width: 640px; margin: 0 auto }
+
+    header { text-align: center; margin-bottom: 32px }
+    header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em }
+    header p  { color: #888; font-size: 0.9rem; margin-top: 6px }
+
+    .city-badge {
+      display: inline-block;
+      background: #1e1e30;
+      border: 1px solid #333;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 10px;
+    }
+    .city-badge span { color: #7c8cf8; font-weight: 600 }
+
+    /* ── Form ── */
+    .card {
+      background: #111120;
+      border: 1px solid #222236;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    label:first-of-type { margin-top: 0 }
+
+    input, select, textarea {
+      width: 100%;
+      background: #0d0d1a;
+      border: 1px solid #2a2a40;
+      border-radius: 8px;
+      color: #e8e8f0;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #5a63e0;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+
+    select option { background: #111120 }
+
+    .char-count { font-size: 0.75rem; color: #555; text-align: right; margin-top: 4px }
+    .char-count.warn { color: #e08020 }
+
+    button[type="submit"] {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background: #5a63e0;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button[type="submit"]:hover { opacity: 0.85 }
+    button[type="submit"]:disabled { opacity: 0.4; cursor: default }
+
+    .status {
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 20px;
+    }
+    .status.ok  { color: #4caf7d }
+    .status.err { color: #e05a5a }
+
+    /* ── Entries list ── */
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    .entry {
+      background: #111120;
+      border: 1px solid #222236;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .entry-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .author-name { font-weight: 600; font-size: 0.9rem }
+    .entry-time  { font-size: 0.75rem; color: #555; margin-left: auto }
+
+    .entry-text {
+      font-size: 0.88rem;
+      color: #bbb;
+      line-height: 1.55;
+      margin-bottom: 12px;
+    }
+
+    .play-btn {
+      background: #1c1c30;
+      border: 1px solid #2a2a45;
+      color: #7c8cf8;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .play-btn:hover { background: #252540 }
+    .play-btn.playing { color: #4caf7d; border-color: #2a4035 }
+
+    .empty { color: #444; font-size: 0.85rem; text-align: center; padding: 24px 0 }
+
+    .share-box {
+      background: #0d0d1a;
+      border: 1px dashed #2a2a40;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      color: #666;
+      word-break: break-all;
+      margin-top: 8px;
+    }
+    .share-box a { color: #7c8cf8 }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid #333;
+      color: #888;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .copy-btn:hover { color: #e8e8f0 }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Travel Journal</h1>
+    <p>Write your thoughts — your voice will be heard in the world</p>
+    <div class="city-badge" id="cityBadge">World: <span id="cityLabel">—</span></div>
+  </header>
+
+  <!-- Add Entry Form -->
+  <div class="card">
+    <form id="journalForm">
+      <label for="author">Your name</label>
+      <input id="author" type="text" placeholder="e.g. Sarah" maxlength="40" required />
+
+      <label for="voice">Voice</label>
+      <select id="voice">
+        <option value="">Auto (based on your name)</option>
+        <option value="emily">Emily — warm & clear</option>
+        <option value="roma">Roma — expressive</option>
+        <option value="magnus">Magnus — deep & calm</option>
+        <option value="olivia">Olivia — bright & friendly</option>
+        <option value="nyah">Nyah — soft & natural</option>
+      </select>
+
+      <label for="entryText">Journal entry</label>
+      <textarea id="entryText" placeholder="What did you see, feel, or experience here?" maxlength="800"></textarea>
+      <div class="char-count" id="charCount">0 / 800</div>
+
+      <button type="submit" id="submitBtn">Add to the world</button>
+      <div class="status" id="status"></div>
+    </form>
+  </div>
+
+  <!-- Share link -->
+  <div class="card" id="shareCard" style="display:none">
+    <div class="section-title">Share this world</div>
+    <div class="share-box">
+      Send this link to friends &amp; family so they can walk through your world:<br /><br />
+      <a id="shareLink" href="#" target="_blank"></a>
+    </div>
+    <button class="copy-btn" id="copyBtn">Copy link</button>
+  </div>
+
+  <!-- Existing entries -->
+  <div>
+    <div class="section-title" id="entriesTitle">Voices in this world</div>
+    <div id="entriesList"><div class="empty">No entries yet — be the first!</div></div>
+  </div>
+
+</div>
+
+<script>
+  const API = window.location.origin  // same origin (backend serves this)
+  const params = new URLSearchParams(location.search)
+  const cityId = params.get('cityId') || ''
+
+  // ── UI refs ──
+  const cityLabel  = document.getElementById('cityLabel')
+  const shareCard  = document.getElementById('shareCard')
+  const shareLink  = document.getElementById('shareLink')
+  const copyBtn    = document.getElementById('copyBtn')
+  const form       = document.getElementById('journalForm')
+  const submitBtn  = document.getElementById('submitBtn')
+  const statusEl   = document.getElementById('status')
+  const charCount  = document.getElementById('charCount')
+  const entryText  = document.getElementById('entryText')
+  const entriesList = document.getElementById('entriesList')
+  const entriesTitle = document.getElementById('entriesTitle')
+
+  // ── Init ──
+  cityLabel.textContent = cityId || 'not set'
+
+  if (cityId) {
+    const vrUrl = `${location.protocol}//${location.hostname}:5173/?cityId=${cityId}`
+    shareLink.href = vrUrl
+    shareLink.textContent = vrUrl
+    shareCard.style.display = 'block'
+  }
+
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(shareLink.href).then(() => {
+      copyBtn.textContent = 'Copied!'
+      setTimeout(() => copyBtn.textContent = 'Copy link', 2000)
+    })
+  }
+
+  // ── Char counter ──
+  entryText.addEventListener('input', () => {
+    const len = entryText.value.length
+    charCount.textContent = `${len} / 800`
+    charCount.classList.toggle('warn', len > 650)
+  })
+
+  // ── Author colors (matches VR orb colors) ──
+  const PALETTE = ['#7c8cf8','#f87c8c','#8cf87c','#f8c87c','#c87cf8','#7cf8f8']
+  function authorColor(name) {
+    let h = 0; for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
+    return PALETTE[Math.abs(h) % PALETTE.length]
+  }
+
+  // ── Load entries ──
+  async function loadEntries() {
+    if (!cityId) { entriesTitle.textContent = 'Set a cityId in the URL to see entries'; return }
+    try {
+      const r = await fetch(`${API}/journal/${cityId}`)
+      const entries = await r.json()
+      renderEntries(entries)
+    } catch (e) {
+      entriesList.innerHTML = `<div class="empty">Could not load entries</div>`
+    }
+  }
+
+  function renderEntries(entries) {
+    if (!entries.length) {
+      entriesList.innerHTML = `<div class="empty">No entries yet — be the first!</div>`
+      return
+    }
+    entriesList.innerHTML = entries.slice().reverse().map(e => {
+      const initial = (e.author || '?')[0].toUpperCase()
+      const color   = authorColor(e.author)
+      const date    = new Date(e.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      return `
+        <div class="entry" id="entry-${e.id}">
+          <div class="entry-header">
+            <div class="avatar" style="background:${color}22;color:${color}">${initial}</div>
+            <span class="author-name">${esc(e.author)}</span>
+            <span class="entry-time">${date}</span>
+          </div>
+          <div class="entry-text">${esc(e.text)}</div>
+          <button class="play-btn" onclick="playEntry('${e.id}', '${e.audioUrl}', this)">
+            ▶ Play voice
+          </button>
+        </div>`
+    }).join('')
+  }
+
+  // ── Play audio ──
+  let currentAudio = null
+  window.playEntry = (id, audioUrl, btn) => {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null }
+    document.querySelectorAll('.play-btn').forEach(b => { b.textContent = '▶ Play voice'; b.classList.remove('playing') })
+
+    const audio = new Audio(`${API}${audioUrl}`)
+    currentAudio = audio
+    btn.textContent = '■ Playing...'
+    btn.classList.add('playing')
+    audio.play()
+    audio.onended = () => { btn.textContent = '▶ Play voice'; btn.classList.remove('playing') }
+  }
+
+  // ── Submit ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    if (!cityId) { setStatus('Set ?cityId=your-world-id in the URL first', 'err'); return }
+
+    const author   = document.getElementById('author').value.trim()
+    const text     = entryText.value.trim()
+    const voice_id = document.getElementById('voice').value || undefined
+
+    if (!text) { setStatus('Write something first!', 'err'); return }
+
+    submitBtn.disabled = true
+    setStatus('Generating voice...', '')
+
+    try {
+      const r = await fetch(`${API}/journal/${cityId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, author, voice_id }),
+      })
+      if (!r.ok) throw new Error((await r.json()).error || r.statusText)
+
+      form.reset()
+      charCount.textContent = '0 / 800'
+      setStatus('Added! Walk into the world to hear it.', 'ok')
+      await loadEntries()
+    } catch (err) {
+      setStatus(`Error: ${err.message}`, 'err')
+    } finally {
+      submitBtn.disabled = false
+    }
+  })
+
+  function setStatus(msg, type) {
+    statusEl.textContent = msg
+    statusEl.className = 'status ' + type
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+  }
+
+  loadEntries()
+</script>
+</body>
+</html>
