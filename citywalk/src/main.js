@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
 import { SplatMesh } from '@sparkjsdev/spark'
+import { MusicController } from '../../music/src/audio/MusicController.js'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const SPLAT_URL = '/benchmark/test-gemini-20260315065249/world.spz'
+const SPLAT_URL  = '/benchmark/test-gemini-20260315065249/world.spz'
+const MUSIC_URL  = '/music.mp3'   // place your file at citywalk/public/music.mp3
 
 // ─── Renderer ────────────────────────────────────────────────────────────────
 
@@ -30,6 +32,14 @@ scene.add(playerRig)
 // Panorama splat: start at the capture origin
 camera.position.set(0, 0, 0)
 camera.lookAt(0, 0, -1)
+
+// ─── Music ───────────────────────────────────────────────────────────────────
+
+const music = new MusicController(camera)
+music.load(MUSIC_URL).catch(err => console.warn('Music load failed:', err))
+
+// Start music on first XR session start (satisfies browser autoplay policy)
+renderer.xr.addEventListener('sessionstart', () => music.play())
 
 // ─── Mouse-drag look + WASD move ─────────────────────────────────────────────
 
@@ -230,5 +240,6 @@ renderer.setAnimationLoop(() => {
   // Clamp to splat bounds so the user can't walk out of the city
   if (boundary) playerRig.position.clamp(boundary.min, boundary.max)
 
+  music.update()
   renderer.render(scene, camera)
 })
