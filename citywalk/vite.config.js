@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import basicSsl from '@vitejs/plugin-basic-ssl'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -19,6 +18,7 @@ function serveBenchmark() {
             : ext === '.png' ? 'image/png'
             : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
             : ext === '.json' ? 'application/json'
+            : ext === '.mp3' ? 'audio/mpeg'
             : 'application/octet-stream'
           res.setHeader('Content-Type', mime)
           res.setHeader('Access-Control-Allow-Origin', '*')
@@ -33,7 +33,6 @@ function serveBenchmark() {
 
 export default defineConfig({
   plugins: [
-    basicSsl(),       // self-signed cert — WebXR requires HTTPS on PICO
     serveBenchmark(),
   ],
   server: {

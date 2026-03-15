@@ -151,6 +151,37 @@ async function loadJournalEntries() {
 
 loadJournalEntries()
 
+// ─── Demo Journal Orb (hardcoded) ────────────────────────────────────────────
+// Sai's journal entry — pinned to the lantern window on the LEFT side.
+// POSITION: (-3, 1.3, -2) — turn left from start, walk toward the warm lantern.
+// Voice triggers only when within 1.5m (tight radius — must be right next to it).
+const DEMO_ORB_TRIGGER = 1.5  // tighter than default so it only plays up close
+
+;(function spawnDemoOrb() {
+  const geo = new THREE.SphereGeometry(0.14, 16, 16)
+  const mat = new THREE.MeshBasicMaterial({ color: 0x7c8cf8, transparent: true, opacity: 0.85 })
+  const orb = new THREE.Mesh(geo, mat)
+  orb.position.set(-3, 1.3, -2)
+
+  const labelTex = makeLabel('Sai')
+  const labelGeo = new THREE.PlaneGeometry(1.0, 0.18)
+  const labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, depthWrite: false })
+  const labelMesh = new THREE.Mesh(labelGeo, labelMat)
+  labelMesh.position.set(0, 0.28, 0)
+  orb.add(labelMesh)
+  scene.add(orb)
+
+  const audio = new THREE.PositionalAudio(audioListener)
+  audio.setRefDistance(1.5)
+  audio.setVolume(1.0)
+  orb.add(audio)
+
+  new THREE.AudioLoader().load('/benchmark/journal-sai.mp3', buffer => audio.setBuffer(buffer))
+
+  // Use DEMO_ORB_TRIGGER (not the global JOURNAL_TRIGGER_DIST) for proximity check
+  journalOrbs.push({ orb, audio, entry: { author: 'Sai', avatarUrl: '/benchmark/avatar-sai.png' }, labelMat, triggerDist: DEMO_ORB_TRIGGER })
+})()
+
 // ─── Photographer NPC ────────────────────────────────────────────────────────
 // A simple humanoid figure standing in the world holding a camera.
 // Click / tap them → full-screen photobook overlay opens.
@@ -388,6 +419,9 @@ scene.add(xrController1)
 
 const loadingEl  = document.getElementById('loading')
 const loadingTxt = document.getElementById('loading-text')
+const jpPopup    = document.getElementById('journal-popup')
+const jpAvatar   = document.getElementById('jp-avatar')
+const jpName     = document.getElementById('jp-name')
 
 // ─── Debug overlay ───────────────────────────────────────────────────────────
 
@@ -515,23 +549,48 @@ renderer.setAnimationLoop(() => {
   if (!pbOpen && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
   if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
 
-  // ── Journal orb proximity + auto-play ────────────────────────────────────
+  // ── Journal orb proximity + auto-play + popup ────────────────────────────
+
   const tOrb = Date.now() * 0.003
+  let nearestOrb = null
+  let nearestDist = Infinity
+
   for (const item of journalOrbs) {
-    const dist = camWorld.distanceTo(item.orb.position)
+    const dist    = camWorld.distanceTo(item.orb.position)
+    const trigger = item.triggerDist ?? JOURNAL_TRIGGER_DIST
 
     // Billboard: always face the camera
     item.orb.lookAt(camWorld.x, item.orb.position.y, camWorld.z)
 
     // Pulse scale when player is nearby
-    const near  = dist < JOURNAL_TRIGGER_DIST * 2
+    const near  = dist < trigger * 2
     const pulse = near ? 1 + 0.2 * Math.sin(tOrb + item.orb.position.x) : 1
     item.orb.scale.setScalar(pulse)
 
     // Auto-play voice when player enters trigger radius
-    if (dist < JOURNAL_TRIGGER_DIST && item.audio.buffer && !item.audio.isPlaying) {
+    if (dist < trigger && item.audio.buffer && !item.audio.isPlaying) {
       item.audio.play()
     }
+
+    // Track closest orb within popup range
+    if (dist < trigger && dist < nearestDist) {
+      nearestDist = dist
+      nearestOrb  = item
+    }
+  }
+
+  // Show/hide popup for nearest orb
+  if (nearestOrb) {
+    const entry = nearestOrb.entry
+    if (jpAvatar.dataset.author !== entry.author) {
+      jpAvatar.src = entry.avatarUrl || ''
+      jpAvatar.dataset.author = entry.author
+      jpName.textContent = entry.author
+    }
+    jpPopup.classList.add('visible')
+    jpPopup.classList.toggle('playing', nearestOrb.audio.isPlaying)
+  } else {
+    jpPopup.classList.remove('visible', 'playing')
   }
 
   renderer.render(scene, camera)
