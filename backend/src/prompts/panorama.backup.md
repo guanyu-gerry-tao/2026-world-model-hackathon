@@ -64,32 +64,40 @@ PROMPT_A_END
 
 ```
 PROMPT_B_START
-THIS IS A 360° EQUIRECTANGULAR PANORAMA. THE OUTPUT MUST BE A FULL 360° EQUIRECTANGULAR IMAGE WITH 2:1 ASPECT RATIO. THIS IS NOT A REGULAR PHOTO. THE ENTIRE 360° SCENE MUST WRAP SEAMLESSLY FROM LEFT EDGE TO RIGHT EDGE.
+You are a professional 360° panoramic photographer and compositor.
 
-Style: Japanese anime film — specifically Makoto Shinkai (Your Name, Weathering With You). Key visual characteristics:
-- Crisp, defined outlines on all architecture and objects — clean anime linework
-- Dramatic, volumetric lighting: god rays, glowing windows, neon reflections on wet pavement, light bloom
-- Rich color contrast: deep indigo/purple sky against warm golden lights, vivid neon signs
-- Highly detailed backgrounds in the style of Japanese anime key art — every building has texture and depth
-- Cinematic atmosphere: lens flare, light particles, depth of field haze on distant elements
-Every frame must look like a production still from a Makoto Shinkai film.
+You will receive several personal photos as visual inspiration.
 
-You will receive personal photos. ALL buildings, landmarks, and landscapes from the photos MUST appear in the output — do not ignore any photo.
+Your task: Paint a single, unified 360° equirectangular scene (2:1 aspect ratio) that feels like ONE real photograph taken by a 360° camera — not a collage, not a composite, not a mosaic.
 
-CRITICAL — blend them organically: do NOT place each photo as its own isolated section. Instead, weave the architecture and scenery from all photos together into one continuous world. Buildings from different photos should coexist naturally in the same streetscape, with shared lighting and atmosphere. No hard vertical boundaries between elements from different photos.
+The output must look like a single photograph. There must be zero visible boundaries, cuts, or transitions between any elements anywhere in the image.
 
-CAMERA POSITION (critical):
-- The camera is placed at the CENTER of a large open plaza or courtyard. The viewer stands in the middle of an open space.
-- ALL buildings are at a DISTANCE — surrounding the plaza from the outside. No building is directly next to the camera.
-- Because the camera is in the middle of an open space, a large empty ground plane fills the foreground in all directions.
-- The horizon (where buildings meet sky) sits at roughly 45% from the top.
-- The bottom 45% of the image is mostly open ground — plaza, cobblestone, or pavement — with buildings visible only in the distance above the horizon.
+CRITICAL — NO BOUNDARIES ANYWHERE: Scan every pixel of the output before finalizing. There must be zero visible seams, cuts, edges, or transitions anywhere in the image — not in the middle, not at the sides, not anywhere. If any boundary is detectable between two regions, repaint the entire area until it is invisible.
 
-EDGES:
-- Fill the entire width with buildings, architecture, and scenery — no empty zones at the edges
-- Left and right edges must match in tone and content so the 360° wrap is seamless
+CRITICAL — DO NOT COMPOSITE: You are a painter, not a photo editor. Do NOT sample pixels from the input photos. Do NOT cut, paste, blend, warp, or stitch any portion of any input photo into the output. Do NOT place two different scenes side by side. The input photos must never appear as recognizable regions in the output.
 
-STYLE: Makoto Shinkai anime — crisp outlines, dramatic god-ray lighting, glowing neon and warm window light, deep indigo sky, wet reflective pavement, light bloom and particles. Mood: cinematic, nostalgic, breathtakingly beautiful. No people.
+Instead: Study the input photos like an artist studying references. Then put them aside and paint an entirely new unified scene from scratch on a blank canvas — ONE continuous world with consistent lighting, atmosphere, and perspective throughout. The output should share the architectural style, color palette, and atmosphere of the photos — but every pixel must be freshly generated as part of a single coherent environment.
+
+CRITICAL — VIEWPOINT: The camera is at exactly 1.6 meters above the ground. This is non-negotiable. You are a person standing on a flat street looking straight at the horizon. Buildings tower above you. The ground stretches below you. This is NOT a bird's-eye view, NOT aerial, NOT top-down. Completely discard any high-angle perspective from input photos. You are always at street level.
+
+CRITICAL — HORIZON: The horizon line must fall at EXACTLY 50% of the image height — the precise vertical center. Not 40%, not 45%, not 60%. Exactly half. This rule is absolute and must NEVER be adjusted to accommodate buildings or any other objects. Do not move the horizon down just to make a building appear taller or more centered. Buildings and structures naturally occupy the upper half of the image above the horizon — that is correct and expected.
+
+Composition:
+- Sky fills the top 50% — one seamless gradient, no horizontal cuts, no banding, no hard lines anywhere in the sky
+- Ground fills the bottom 50%, flat and continuous with correct equirectangular perspective (widens toward bottom center)
+- The ground must have natural surface markers and details: road markings, pavement tiles, curb lines, drain covers, crosswalk stripes, or cobblestones — enough to give depth and texture to the ground plane. Do not leave the ground as a plain empty surface.
+
+Seamlessness (CRITICAL):
+- There must be zero visible boundaries, cuts, or transitions ANYWHERE in the image — not in the center, not at the sides, not between any two regions
+- The entire image must read as one continuous, unified environment with consistent lighting and atmosphere from left to right
+- The leftmost and rightmost 15% must contain ONLY open sky, soft clouds, distant landscape, or empty ground — NO buildings or hard-edged objects near the edges
+- The left and right edges must be nearly identical in tone so the 360° wrap is invisible
+
+People:
+- CRITICAL: Remove ALL human figures, faces, silhouettes, and body parts from the entire scene. Replace with environmental elements — lights, objects, architecture, nature.
+
+Style:
+- Photorealistic rendering — looks like a real photograph, not an illustration or drawing
 
 Output: image only, no text.
 
@@ -97,7 +105,7 @@ Description: {{DESCRIPTION}}
 PROMPT_B_END
 ```
 
-**Default description:** `A magical anime world, golden hour light, lush and painterly, empty of people`
+**Default description:** `A photorealistic street scene, empty of people`
 
 ---
 
@@ -107,32 +115,24 @@ PROMPT_B_END
 
 ```
 PROMPT_REFINE_START
-THIS OUTPUT MUST BE A 360° EQUIRECTANGULAR PANORAMA with a 2:1 aspect ratio. The left and right edges must wrap seamlessly.
+You are an expert 360° equirectangular panorama retoucher.
 
-You will receive a panorama image. You MUST make ALL of the following changes unconditionally — do not skip any step even if the image looks acceptable to you.
+You will receive a 360° equirectangular panorama image that may contain defects. Your task is to output a corrected version of the same image.
 
-THINK OF THE IMAGE AS A GRID. The image has a height H. The midpoint is at H/2 — this is the HARD DIVIDING LINE.
+Fix these types of defects if present:
+- Visible seam at the left/right edge where the 360° wrap joins — blend it seamlessly
+- Blurry, smeared, or low-detail patches anywhere in the image
+- Incorrect horizon line — if the horizon sits above or below 50% of the image height, shift the entire scene vertically until the horizon lands at exactly 50%; fill any exposed strip at the top or bottom by extending the sky or ground content naturally to match the adjacent pixels
+- Perspective distortion: the ground should appear flat with correct equirectangular warping (wider at bottom center), NOT a bird's-eye view or tilted angle
+- Any human figures, faces, or body parts that appear — replace with environmental elements
+- Color banding, gradient artifacts, or hard horizontal cuts in the sky
+- Objects or structures bleeding into the edge zones (leftmost/rightmost 15%) — replace with open sky, soft clouds, or empty ground
 
-RULE 1 — THE DIVIDING LINE IS ABSOLUTE:
-- Rows 0 to H/2 (TOP HALF): sky and buildings only
-- Rows H/2 to H (BOTTOM HALF): flat ground only — no exceptions
-- The dividing line at H/2 is the horizon. It must be a clean, flat, horizontal line across the full width.
-
-STEP 1 — ENFORCE THE BOTTOM HALF (DO THIS FIRST):
-Look at every row in the bottom half of the image (rows H/2 to H). If any row contains a building, wall, facade, window, door, or any man-made vertical structure — ERASE IT and replace with ground texture (pavement, stone, grass, or dirt) matching the surrounding ground. The bottom half must contain ONLY flat ground. Do this row by row until the entire bottom half is clean ground.
-
-STEP 2 — ENFORCE THE HORIZON LINE:
-The boundary between top half and bottom half must be a visible, clean, flat horizon line. Sky and buildings above. Ground below. No blending of buildings into the ground zone.
-
-STEP 3 — VERTICAL CUTS (MANDATORY):
-Find every hard vertical boundary, sharp edge, or abrupt transition between sections in the image. Repaint and blend all of them — extend textures, match lighting across the boundary, and make the full image look like one continuous scene with zero visible vertical seams.
-
-STEP 4 — OTHER:
-- Blend left/right edges so the 360° wrap is invisible
-- Remove any human figures — replace with environment
-- Fix sky banding, blurry patches, or color artifacts
-
-Output: the full corrected image at the same 2:1 aspect ratio. Image only, no text.
+Rules:
+- Do NOT change the overall composition, scene content, style, or color mood
+- Do NOT add new objects or architectural elements that weren't in the original
+- Output the full corrected image at the same 2:1 aspect ratio
+- Image only, no text
 PROMPT_REFINE_END
 ```
 

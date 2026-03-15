@@ -19,6 +19,7 @@ function extractPrompt(tag) {
 const PROMPT_A = extractPrompt("PROMPT_A");
 const PROMPT_B = extractPrompt("PROMPT_B");
 const PROMPT_REFINE = extractPrompt("PROMPT_REFINE");
+const PROMPT_DESCRIBE = extractPrompt("PROMPT_DESCRIBE");
 
 /**
  * Generate a 360° equirectangular panorama from user photos.
@@ -69,7 +70,7 @@ export async function generatePanorama({ userPhotoPaths, templatePath, descripti
     });
   } else {
     parts.push({
-      text: PROMPT_B.replace("{{DESCRIPTION}}", description || "A dreamlike memory world blending personal moments, empty of people"),
+      text: PROMPT_B.replace("{{DESCRIPTION}}", description || "A photorealistic street scene, empty of people"),
     });
   }
 
@@ -157,4 +158,42 @@ export async function refinePanorama({ buffer, ai, model }) {
 
   const textPart = candidate.content.parts.find((p) => p.text);
   throw new Error(`Gemini refinement did not return an image. Response: ${textPart?.text ?? "unknown"}`);
+}
+
+/**
+ * Describe each photo with a mood/atmosphere text for music generation.
+ *
+ * @param {string[]} photoPaths - paths to user photos
+ * @returns {{ filename: string, description: string }[]}
+ */
+export async function describePhotos(photoPaths) {
+  if (process.env.USE_MOCK === "true") {
+    return photoPaths.map((p) => ({ filename: path.basename(p), description: "Mock description." }));
+  }
+
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, httpOptions: { apiVersion: "v1alpha" } });
+  const results = [];
+
+  for (const photoPath of photoPaths) {
+    const data = fs.readFileSync(photoPath).toString("base64");
+    const ext = photoPath.split(".").pop().toLowerCase();
+    const mimeMap = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
+
+    const response = await ai.models.generateContent({
+      model: MODEL_FAST,
+      contents: [{
+        parts: [
+          { text: PROMPT_DESCRIBE },
+          { inlineData: { mimeType: mimeMap[ext] ?? "image/jpeg", data } },
+        ],
+      }],
+      config: { responseModalities: ["TEXT"] },
+    });
+
+    const text = response.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text?.trim() ?? "";
+    results.push({ filename: path.basename(photoPath), description: text });
+    console.log(`[gemini] Described ${path.basename(photoPath)}: ${text.slice(0, 60)}...`);
+  }
+
+  return results;
 }
