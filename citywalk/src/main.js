@@ -645,9 +645,10 @@ renderer.setAnimationLoop(() => {
   // hint label always faces camera
   hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
 
-  // ── Proximity auto-popup ──────────────────────────────────────────────────
+  // ── Proximity auto-popup (XZ only — ignore Y so height diff doesn't block) ──
   const npcWorldPos = new THREE.Vector3(1.5, NPC_GROUND_Y, -3.5)
-  const distToNpc   = camWorld.distanceTo(npcWorldPos)
+  const distToNpc   = new THREE.Vector2(camWorld.x, camWorld.z)
+    .distanceTo(new THREE.Vector2(npcWorldPos.x, npcWorldPos.z))
   if (distToNpc > NPC_POPUP_CLOSE) pbManuallyClosed = false  // reset when user walks away
   if (!pbOpen && !pbManuallyClosed && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
   if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
