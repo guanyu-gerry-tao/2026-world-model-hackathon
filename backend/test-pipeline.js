@@ -35,7 +35,7 @@ async function main() {
   // Attach sample photo as a Blob
   const blob = new Blob([MOCK_PNG], { type: "image/png" });
   form.append("photos", blob, "sample.png");
-  form.append("description", "东京涩谷夜晚街道 — test run");
+  form.append("description", "Tokyo Shibuya nighttime street — test run");
   form.append("cityId", "test-city-" + Date.now().toString(36));
   form.append("marbleModel", "Marble 0.1-mini");
 
