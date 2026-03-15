@@ -2,7 +2,8 @@ import express from "express";
 import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
-import { generatePanorama } from "../services/gemini.js";
+import { generatePanorama as generatePanoramaGemini, refinePanorama } from "../services/gemini-panorama.js";
+import { generatePanorama as generatePanoramaOpenAI } from "../services/openai-panorama.js";
 import { runMarblePipeline, downloadSpz } from "../services/marble.js";
 
 const router = express.Router();
@@ -12,7 +13,7 @@ const upload = multer({
   dest: "uploads/",
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB per file
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
       return cb(new Error("Only image files are allowed"));
     }
     cb(null, true);
@@ -34,21 +35,23 @@ function updateJob(id, patch) {
 }
 
 /**
- * POST /pipeline/generate
+ * POST /pipeline/panorama
+ *
+ * Step 1: Generate panorama with Gemini only.
  *
  * Multipart form fields:
- *   photos        - 1–8 image files (required)
- *   template      - city template panorama (optional, triggers Mode A)
- *   description   - text description of the world (optional)
- *   cityId        - output folder name, e.g. "tokyo-shibuya" (optional)
- *   quality       - "fast" | "pro" (optional, default "fast")
- *   marbleModel   - "Marble 0.1-mini" | "Marble 0.1-plus" (optional)
+ *   photos       - 1–8 image files (required)
+ *   template     - city template panorama (optional, triggers Mode A)
+ *   description  - text description (optional)
+ *   cityId       - output folder name, e.g. "tokyo-shibuya" (optional)
+ *   quality      - "fast" | "pro" (optional, default "fast")
  *
  * Returns: { jobId }
- * Then poll GET /pipeline/status/:jobId
+ * Poll GET /pipeline/status/:jobId
+ * Result: { cityId, panoramaUrl, panoramaPath }
  */
 router.post(
-  "/generate",
+  "/panorama",
   upload.fields([
     { name: "photos", maxCount: 8 },
     { name: "template", maxCount: 1 },
@@ -64,19 +67,47 @@ router.post(
       description = "",
       cityId = "city-" + jobId,
       quality = "fast",
-      marbleModel = "Marble 0.1-mini",
+      provider = "gemini",
     } = req.body;
 
-    // Run pipeline async, don't await here
-    runPipeline({ jobId, photos, template: req.files?.template?.[0], description, cityId, quality, marbleModel });
+    runPanoramaJob({ jobId, photos, template: req.files?.template?.[0], description, cityId, quality, provider });
 
     res.json({ jobId });
   }
 );
 
 /**
+ * POST /pipeline/world
+ *
+ * Step 2: Generate 3D world from panorama with Marble.
+ *
+ * JSON body:
+ *   cityId       - must match the cityId from the panorama step (required)
+ *   marbleModel  - "Marble 0.1-mini" | "Marble 0.1-plus" (optional, default "Marble 0.1-mini")
+ *
+ * Returns: { jobId }
+ * Poll GET /pipeline/status/:jobId
+ * Result: { cityId, operationId, spzPath, remoteUrls }
+ */
+router.post("/world", async (req, res) => {
+  const { cityId, marbleModel = "Marble 0.1-mini" } = req.body;
+  if (!cityId) {
+    return res.status(400).json({ error: "cityId is required" });
+  }
+
+  const panoramaPath = path.resolve("output", cityId, "panorama.png");
+  if (!fs.existsSync(panoramaPath)) {
+    return res.status(404).json({ error: `Panorama not found for cityId: ${cityId}. Run /pipeline/panorama first.` });
+  }
+
+  const jobId = createJob();
+  runWorldJob({ jobId, cityId, panoramaPath, marbleModel });
+
+  res.json({ jobId });
+});
+
+/**
  * GET /pipeline/status/:jobId
- * Returns current job status and result when done.
  */
 router.get("/status/:jobId", (req, res) => {
   const job = jobs.get(req.params.jobId);
@@ -84,33 +115,64 @@ router.get("/status/:jobId", (req, res) => {
   res.json(job);
 });
 
-/**
- * The actual async pipeline
- */
-async function runPipeline({ jobId, photos, template, description, cityId, quality, marbleModel }) {
+// ---------------------------------------------------------------------------
+// Async workers
+// ---------------------------------------------------------------------------
+
+async function runPanoramaJob({ jobId, photos, template, description, cityId, quality, provider = "gemini" }) {
   const uploadedPaths = photos.map((f) => f.path);
   const templatePath = template?.path ?? null;
 
   try {
-    // ── Step 1: Generate panorama with Gemini ──────────────────────────────
-    updateJob(jobId, { status: "generating_panorama", progress: "Calling Gemini..." });
+    updateJob(jobId, { status: "generating_panorama", progress: `Calling ${provider === "openai" ? "OpenAI" : "Gemini"}...` });
 
-    const panoramaBuffer = await generatePanorama({
-      userPhotoPaths: uploadedPaths,
-      templatePath,
-      description,
-      quality,
-    });
+    const rawBuffer = provider === "openai"
+      ? await generatePanoramaOpenAI({ userPhotoPaths: uploadedPaths, description })
+      : await generatePanoramaGemini({ userPhotoPaths: uploadedPaths, templatePath, description, quality });
 
-    // Save panorama for inspection
     const outputDir = path.resolve("output", cityId);
     fs.mkdirSync(outputDir, { recursive: true });
+
+    // Save raw (pre-refinement) for comparison
+    const rawPath = path.join(outputDir, "panorama_raw.png");
+    fs.writeFileSync(rawPath, rawBuffer);
+    console.log(`[pipeline] Raw panorama saved → ${rawPath}`);
+
+    // Auto-refine (Gemini only; OpenAI output passes through unchanged)
+    let panoramaBuffer = rawBuffer;
+    if (provider === "gemini") {
+      updateJob(jobId, { progress: "Refining panorama..." });
+      panoramaBuffer = await refinePanorama({ buffer: rawBuffer });
+    }
+
     const panoramaPath = path.join(outputDir, "panorama.png");
     fs.writeFileSync(panoramaPath, panoramaBuffer);
-    console.log(`[pipeline] Panorama saved → ${panoramaPath}`);
+    console.log(`[pipeline] Refined panorama saved → ${panoramaPath}`);
 
-    // ── Step 2: Marble pipeline ────────────────────────────────────────────
+    updateJob(jobId, {
+      status: "done",
+      progress: null,
+      result: {
+        cityId,
+        panoramaPath,
+        panoramaUrl: `/output/${cityId}/panorama.png`,
+        panoramaRawUrl: `/output/${cityId}/panorama_raw.png`,
+      },
+    });
+  } catch (err) {
+    console.error(`[pipeline] Panorama job ${jobId} failed:`, err.message);
+    updateJob(jobId, { status: "error", error: err.message });
+  } finally {
+    for (const p of uploadedPaths) fs.rmSync(p, { force: true });
+    if (templatePath) fs.rmSync(templatePath, { force: true });
+  }
+}
+
+async function runWorldJob({ jobId, cityId, panoramaPath, marbleModel }) {
+  try {
     updateJob(jobId, { status: "generating_world", progress: "Uploading to Marble..." });
+
+    const panoramaBuffer = fs.readFileSync(panoramaPath);
 
     const { spzUrls, colliderUrl, panoUrl, operationId } = await runMarblePipeline(panoramaBuffer, {
       displayName: cityId,
@@ -118,45 +180,37 @@ async function runPipeline({ jobId, photos, template, description, cityId, quali
       onProgress: (stage) => updateJob(jobId, { progress: `Marble: ${stage}` }),
     });
 
-    // ── Step 3: Download .spz ──────────────────────────────────────────────
     updateJob(jobId, { status: "downloading", progress: "Downloading .spz..." });
 
+    const outputDir = path.resolve("output", cityId);
     const spzPath = path.join(outputDir, "world.spz");
     if (spzUrls["500k"]) {
       await downloadSpz(spzUrls["500k"], spzPath);
     } else {
-      // Mock mode: write a placeholder file
       fs.writeFileSync(spzPath, Buffer.alloc(0));
       console.log("[pipeline] MOCK: wrote empty world.spz placeholder");
     }
 
-    // ── Done ───────────────────────────────────────────────────────────────
-    const result = {
-      cityId,
-      operationId,
-      files: {
-        panorama: panoramaPath,
-        spz: spzPath,
+    updateJob(jobId, {
+      status: "done",
+      progress: null,
+      result: {
+        cityId,
+        operationId,
+        spzPath,
+        remoteUrls: {
+          spz500k: spzUrls["500k"],
+          spzFullRes: spzUrls["full_res"],
+          collider: colliderUrl,
+          pano: panoUrl,
+        },
       },
-      remoteUrls: {
-        spz500k: spzUrls["500k"],
-        spzFullRes: spzUrls["full_res"],
-        collider: colliderUrl,
-        pano: panoUrl,
-      },
-    };
+    });
 
-    updateJob(jobId, { status: "done", progress: null, result });
-    console.log(`[pipeline] Job ${jobId} complete.`);
+    console.log(`[pipeline] World job ${jobId} complete.`);
   } catch (err) {
-    console.error(`[pipeline] Job ${jobId} failed:`, err.message);
+    console.error(`[pipeline] World job ${jobId} failed:`, err.message);
     updateJob(jobId, { status: "error", error: err.message });
-  } finally {
-    // Clean up temp upload files
-    for (const p of uploadedPaths) {
-      fs.rmSync(p, { force: true });
-    }
-    if (templatePath) fs.rmSync(templatePath, { force: true });
   }
 }
 
