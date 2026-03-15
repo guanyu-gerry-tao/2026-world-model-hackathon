@@ -65,6 +65,18 @@ camera.lookAt(0, 0, -1)
 const audioListener = new THREE.AudioListener()
 camera.add(audioListener)
 
+// ─── Background Music ─────────────────────────────────────────────────────────
+const bgMusic = new THREE.Audio(audioListener)
+new THREE.AudioLoader().load('/music.mp3', buffer => {
+  bgMusic.setBuffer(buffer)
+  bgMusic.setLoop(true)
+  bgMusic.setVolume(0.25)
+})
+renderer.xr.addEventListener('sessionstart', () => {
+  if (audioListener.context.state === 'suspended') audioListener.context.resume()
+  if (!bgMusic.isPlaying) bgMusic.play()
+})
+
 // ─── Shared canvas-texture helper ────────────────────────────────────────────
 
 function makeCanvasTex(w, h, draw) {
