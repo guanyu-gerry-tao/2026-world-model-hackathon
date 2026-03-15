@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
 import { SplatMesh } from '@sparkjsdev/spark'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -10,14 +11,23 @@ const SPLAT_URL = '/benchmark/test-gemini-20260315000644/world.spz'
 const renderer = new THREE.WebGLRenderer({ antialias: false })
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.xr.enabled = true
+renderer.xr.setReferenceSpaceType('local-floor')
 document.body.appendChild(renderer.domElement)
+document.body.appendChild(VRButton.createButton(renderer))
 
 // ─── Scene + Camera ──────────────────────────────────────────────────────────
 
 const scene  = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 500)
 
-// Panorama splat: camera starts at origin (the capture point)
+// Player rig: in XR the headset drives camera rotation, so we move this group
+// for locomotion instead of the camera directly.
+const playerRig = new THREE.Group()
+playerRig.add(camera)
+scene.add(playerRig)
+
+// Panorama splat: start at the capture origin
 camera.position.set(0, 0, 0)
 camera.lookAt(0, 0, -1)
 
@@ -92,6 +102,22 @@ const keys = {}
 window.addEventListener('keydown', e => { keys[e.code] = true })
 window.addEventListener('keyup',   e => { keys[e.code] = false })
 
+// ─── XR Controller thumbstick helpers ────────────────────────────────────────
+
+// Pico / OpenXR controllers expose axes [2]=thumbX, [3]=thumbY
+function readThumbstick(inputSource, deadzone = 0.15) {
+  const gp = inputSource?.gamepad
+  if (!gp || gp.axes.length < 4) return { x: 0, y: 0 }
+  const x = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0
+  const y = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0
+  return { x, y }
+}
+
+const xrController0 = renderer.xr.getController(0)
+const xrController1 = renderer.xr.getController(1)
+scene.add(xrController0)
+scene.add(xrController1)
+
 // ─── Loading UI ──────────────────────────────────────────────────────────────
 
 const loadingEl  = document.getElementById('loading')
@@ -148,25 +174,61 @@ window.addEventListener('resize', () => {
 const euler   = new THREE.Euler(0, 0, 0, 'YXZ')
 const forward = new THREE.Vector3()
 const right   = new THREE.Vector3()
-const SPEED   = 0.01
+const SPEED   = 0.03
 
 renderer.setAnimationLoop(() => {
-  // Apply look rotation
-  euler.set(pitch, yaw, 0)
-  camera.quaternion.setFromEuler(euler)
+  if (renderer.xr.isPresenting) {
+    // ── XR (Pico headset) mode ────────────────────────────────────────────
+    // Headset pose drives camera rotation; we only handle locomotion here.
+    const session = renderer.xr.getSession()
+    const sources = session ? [...session.inputSources] : []
 
-  // WASD movement in camera-facing direction (ignore vertical tilt for movement)
-  const flatYaw = new THREE.Euler(0, yaw, 0, 'YXZ')
-  forward.set(0, 0, -1).applyEuler(flatYaw)
-  right.set(1, 0, 0).applyEuler(flatYaw)
+    const leftSrc  = sources.find(s => s.handedness === 'left')
+    const rightSrc = sources.find(s => s.handedness === 'right')
 
-  if (keys['KeyW'] || keys['ArrowUp'])    camera.position.addScaledVector(forward,  SPEED)
-  if (keys['KeyS'] || keys['ArrowDown'])  camera.position.addScaledVector(forward, -SPEED)
-  if (keys['KeyA'] || keys['ArrowLeft'])  camera.position.addScaledVector(right,   -SPEED)
-  if (keys['KeyD'] || keys['ArrowRight']) camera.position.addScaledVector(right,    SPEED)
+    // Left thumbstick → forward/strafe, relative to where the player is looking
+    if (leftSrc) {
+      const { x: lx, y: ly } = readThumbstick(leftSrc)
+      if (lx !== 0 || ly !== 0) {
+        // Project head forward onto the horizontal plane for ground locomotion
+        camera.getWorldDirection(forward)
+        forward.y = 0
+        forward.normalize()
+        right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+
+        playerRig.position.addScaledVector(forward, -ly * SPEED)
+        playerRig.position.addScaledVector(right,    lx * SPEED)
+      }
+    }
+
+    // Right thumbstick X → snap-turn (45° increments)
+    if (rightSrc) {
+      const { x: rx } = readThumbstick(rightSrc, 0.5)
+      if (rx !== 0 && !rightSrc._snapUsed) {
+        playerRig.rotateY(-Math.sign(rx) * (Math.PI / 4))
+        rightSrc._snapUsed = true
+      } else if (rx === 0) {
+        if (rightSrc) rightSrc._snapUsed = false
+      }
+    }
+  } else {
+    // ── Desktop / flat-screen mode ────────────────────────────────────────
+    euler.set(pitch, yaw, 0)
+    camera.quaternion.setFromEuler(euler)
+
+    // WASD movement in camera-facing direction (ignore vertical tilt)
+    const flatYaw = new THREE.Euler(0, yaw, 0, 'YXZ')
+    forward.set(0, 0, -1).applyEuler(flatYaw)
+    right.set(1, 0, 0).applyEuler(flatYaw)
+
+    if (keys['KeyW'] || keys['ArrowUp'])    playerRig.position.addScaledVector(forward,  SPEED)
+    if (keys['KeyS'] || keys['ArrowDown'])  playerRig.position.addScaledVector(forward, -SPEED)
+    if (keys['KeyA'] || keys['ArrowLeft'])  playerRig.position.addScaledVector(right,   -SPEED)
+    if (keys['KeyD'] || keys['ArrowRight']) playerRig.position.addScaledVector(right,    SPEED)
+  }
 
   // Clamp to splat bounds so the user can't walk out of the city
-  if (boundary) camera.position.clamp(boundary.min, boundary.max)
+  if (boundary) playerRig.position.clamp(boundary.min, boundary.max)
 
   renderer.render(scene, camera)
 })
