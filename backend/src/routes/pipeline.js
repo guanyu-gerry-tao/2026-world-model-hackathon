@@ -2,9 +2,15 @@ import express from "express";
 import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
+import sharp from "sharp";
 import { generatePanorama as generatePanoramaGemini, refinePanorama } from "../services/gemini-panorama.js";
 import { generatePanorama as generatePanoramaOpenAI } from "../services/openai-panorama.js";
 import { runMarblePipeline, downloadSpz } from "../services/marble.js";
+
+// Resize buffer to exact 2:1 equirectangular (2048x1024) for Marble
+async function toEquirectangular(buffer) {
+  return sharp(buffer).resize(2048, 1024, { fit: "fill" }).png().toBuffer();
+}
 
 const router = express.Router();
 
@@ -90,7 +96,7 @@ router.post(
  * Result: { cityId, operationId, spzPath, remoteUrls }
  */
 router.post("/world", async (req, res) => {
-  const { cityId, marbleModel = "Marble 0.1-mini" } = req.body;
+  const { cityId, marbleModel = "Marble 0.1-mini", textPrompt = "" } = req.body;
   if (!cityId) {
     return res.status(400).json({ error: "cityId is required" });
   }
@@ -101,7 +107,7 @@ router.post("/world", async (req, res) => {
   }
 
   const jobId = createJob();
-  runWorldJob({ jobId, cityId, panoramaPath, marbleModel });
+  runWorldJob({ jobId, cityId, panoramaPath, marbleModel, textPrompt });
 
   res.json({ jobId });
 });
@@ -145,9 +151,13 @@ async function runPanoramaJob({ jobId, photos, template, description, cityId, qu
       panoramaBuffer = await refinePanorama({ buffer: rawBuffer });
     }
 
+    // Resize to exact 2:1 equirectangular (2048x1024) so Marble treats it as a full 360°
+    updateJob(jobId, { progress: "Resizing to equirectangular..." });
+    panoramaBuffer = await toEquirectangular(panoramaBuffer);
+
     const panoramaPath = path.join(outputDir, "panorama.png");
     fs.writeFileSync(panoramaPath, panoramaBuffer);
-    console.log(`[pipeline] Refined panorama saved → ${panoramaPath}`);
+    console.log(`[pipeline] Panorama saved (2048x1024) → ${panoramaPath}`);
 
     updateJob(jobId, {
       status: "done",
@@ -168,15 +178,16 @@ async function runPanoramaJob({ jobId, photos, template, description, cityId, qu
   }
 }
 
-async function runWorldJob({ jobId, cityId, panoramaPath, marbleModel }) {
+async function runWorldJob({ jobId, cityId, panoramaPath, marbleModel, textPrompt = "" }) {
   try {
     updateJob(jobId, { status: "generating_world", progress: "Uploading to Marble..." });
 
-    const panoramaBuffer = fs.readFileSync(panoramaPath);
+    const panoramaBuffer = await toEquirectangular(fs.readFileSync(panoramaPath));
 
-    const { spzUrls, colliderUrl, panoUrl, operationId } = await runMarblePipeline(panoramaBuffer, {
+    const { spzUrls, colliderUrl, panoUrl, operationId, worldId, worldUrl, caption, thumbnailUrl } = await runMarblePipeline(panoramaBuffer, {
       displayName: cityId,
       model: marbleModel,
+      textPrompt,
       onProgress: (stage) => updateJob(jobId, { progress: `Marble: ${stage}` }),
     });
 
@@ -197,6 +208,10 @@ async function runWorldJob({ jobId, cityId, panoramaPath, marbleModel }) {
       result: {
         cityId,
         operationId,
+        worldId,
+        worldUrl,
+        caption,
+        thumbnailUrl,
         spzPath,
         remoteUrls: {
           spz500k: spzUrls["500k"],

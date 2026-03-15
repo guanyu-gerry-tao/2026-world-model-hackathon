@@ -18,13 +18,17 @@ export async function prepareUpload() {
   const res = await fetch(`${BASE_URL}/media-assets:prepare_upload`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({}),
+    body: JSON.stringify({ file_name: "panorama.png", kind: "image" }),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Marble prepareUpload failed ${res.status}: ${text}`);
   }
-  return res.json();
+  const data = await res.json();
+  return {
+    upload_url: data.upload_info.upload_url,
+    asset_id: data.media_asset.media_asset_id,
+  };
 }
 
 /**
@@ -35,7 +39,10 @@ export async function prepareUpload() {
 export async function uploadPanorama(uploadUrl, imageBuffer) {
   const res = await fetch(uploadUrl, {
     method: "PUT",
-    headers: { "Content-Type": "image/png" },
+    headers: {
+      "Content-Type": "image/png",
+      "x-goog-content-length-range": "0,104857600",
+    },
     body: imageBuffer,
   });
   if (!res.ok) {
@@ -45,27 +52,24 @@ export async function uploadPanorama(uploadUrl, imageBuffer) {
 }
 
 /**
- * Step 3: Trigger world generation from a panorama image URL
- * @param {string} imageUrl - publicly accessible URL of the panorama
+ * Step 3: Trigger world generation from an uploaded media asset
+ * @param {string} assetId - media_asset_id from prepareUpload
  * @param {string} displayName - name for this world
  * @param {"Marble 0.1-plus"|"Marble 0.1-mini"} model
  * Returns operation_id
  */
-export async function generateWorld(imageUrl, displayName = "citywalk-world", model = "Marble 0.1-plus") {
+export async function generateWorld(assetId, displayName = "citywalk-world", model = "Marble 0.1-plus", textPrompt = "") {
+  const world_prompt = {
+    type: "image",
+    image_prompt: { source: "media_asset", media_asset_id: assetId },
+    is_pano: true,
+  };
+  if (textPrompt) world_prompt.text_prompt = textPrompt;
+
   const res = await fetch(`${BASE_URL}/worlds:generate`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({
-      display_name: displayName,
-      world_prompt: {
-        type: "image",
-        image_prompt: {
-          image_url: imageUrl,
-          is_pano: true,
-        },
-      },
-      model,
-    }),
+    body: JSON.stringify({ display_name: displayName, world_prompt, model }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -125,7 +129,7 @@ export async function downloadSpz(spzUrl, destPath) {
  * @returns {{ spzUrls, colliderUrl, panoUrl, operationId }}
  */
 export async function runMarblePipeline(panoramaBuffer, options = {}) {
-  const { displayName = "citywalk-world", model = "Marble 0.1-plus", onProgress } = options;
+  const { displayName = "citywalk-world", model = "Marble 0.1-plus", textPrompt = "", onProgress } = options;
 
   if (process.env.USE_MOCK === "true") {
     console.log("[marble] MOCK mode — simulating world generation...");
@@ -152,10 +156,8 @@ export async function runMarblePipeline(panoramaBuffer, options = {}) {
   await uploadPanorama(upload_url, panoramaBuffer);
   console.log(`[marble] Panorama uploaded.`);
 
-  // 3. Trigger generation using the asset URL
-  // After upload, the asset is accessible via the Marble CDN using asset_id
-  const imageUrl = upload_url.split("?")[0]; // strip query params to get base URL
-  const operationId = await generateWorld(imageUrl, displayName, model);
+  // 3. Trigger generation using the uploaded asset ID
+  const operationId = await generateWorld(asset_id, displayName, model, textPrompt);
   console.log(`[marble] Generation started, operation_id=${operationId}`);
 
   // 4. Poll until done
@@ -163,7 +165,11 @@ export async function runMarblePipeline(panoramaBuffer, options = {}) {
 
   return {
     operationId,
-    spzUrls: response.assets.splats.spz_urls,       // { "500k": "...", "100k": "...", "full_res": "..." }
+    worldId: response.world_id,
+    worldUrl: response.world_marble_url,
+    caption: response.assets.splats.caption ?? null,
+    thumbnailUrl: response.assets.thumbnail_url ?? null,
+    spzUrls: response.assets.splats.spz_urls,
     colliderUrl: response.assets.mesh.collider_mesh_url,
     panoUrl: response.assets.imagery.pano_url,
   };

@@ -58,7 +58,7 @@ async function main() {
 
   // Build form
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[-:T]/g, "").slice(0, 15);
+  const timestamp = now.toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
   const cityId = "test-gemini-" + timestamp;
   const form = new FormData();
 
