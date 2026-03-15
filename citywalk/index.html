@@ -39,9 +39,135 @@
       }
 
       /* VRButton gets injected by Three.js — keep it above canvas */
-      #VRButton {
-        z-index: 20 !important;
+      #VRButton { z-index: 20 !important; }
+
+      /* ── Photobook full-screen overlay ───────────────────────────────────── */
+      #pb-overlay {
+        position: fixed; inset: 0; z-index: 50;
+        background: rgba(0,0,0,0.92);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.35s ease;
       }
+      #pb-overlay.open { opacity: 1; pointer-events: all; }
+
+      #pb-book {
+        position: relative;
+        display: flex; align-items: stretch;
+        width: min(88vw, 1100px);
+        aspect-ratio: 2.15 / 1;
+        border-radius: 4px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.06);
+        user-select: none;
+      }
+
+      /* page */
+      .pb-page {
+        flex: 1;
+        background: #faf8f4;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 4%;
+        gap: 12px;
+        overflow: hidden;
+      }
+      .pb-page.pb-left  { border-radius: 4px 0 0 4px; }
+      .pb-page.pb-right { border-radius: 0 4px 4px 0; }
+
+      /* photo mat — the white border around the image like a real print */
+      .pb-mat {
+        background: #fff;
+        padding: 10px 10px 36px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+        width: 100%; flex-shrink: 0;
+        max-height: 78%;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .pb-mat img {
+        display: block; width: 100%; height: 100%;
+        object-fit: cover;
+        max-height: 100%;
+      }
+
+      /* caption */
+      .pb-caption {
+        font-family: 'Georgia', serif; font-style: italic;
+        font-size: clamp(11px, 1.3vw, 15px);
+        color: #5a4a3a; text-align: center;
+        margin: 0;
+      }
+
+      /* page number */
+      .pb-pgnum {
+        position: absolute; bottom: 14px;
+        font-family: Georgia, serif; font-size: 11px; color: #bbb;
+      }
+      .pb-left  .pb-pgnum { left: 18px; }
+      .pb-right .pb-pgnum { right: 18px; }
+
+      /* spine */
+      #pb-spine {
+        width: 22px; flex-shrink: 0;
+        background: linear-gradient(to right, #1a1a1a, #2e2e2e, #1a1a1a);
+        box-shadow: inset 2px 0 6px rgba(0,0,0,0.5), inset -2px 0 6px rgba(0,0,0,0.5);
+      }
+
+      /* page-turn animation */
+      #pb-spread {
+        display: contents;
+        transition: opacity 0.22s, transform 0.22s;
+      }
+      #pb-spread.flip-out {
+        opacity: 0;
+        transform: perspective(900px) rotateY(-6deg) scaleX(0.97);
+      }
+      #pb-spread.flip-in {
+        animation: pbFlipIn 0.25s ease forwards;
+      }
+      @keyframes pbFlipIn {
+        from { opacity: 0; transform: perspective(900px) rotateY(6deg) scaleX(0.97); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      /* navigation arrows */
+      .pb-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.15);
+        color: #fff; font-size: 28px; line-height: 1;
+        width: 44px; height: 44px; border-radius: 50%;
+        cursor: pointer; z-index: 2;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.15s;
+      }
+      .pb-arrow:hover { background: rgba(255,255,255,0.18); }
+      #pb-prev { left: -56px; }
+      #pb-next { right: -56px; }
+
+      /* spread indicator dots */
+      #pb-dots {
+        position: absolute; bottom: -36px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 8px;
+      }
+      .pb-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: rgba(255,255,255,0.3); cursor: pointer;
+        transition: background 0.2s;
+      }
+      .pb-dot.active { background: #fff; }
+
+      /* close button */
+      #pb-close {
+        position: fixed; top: 24px; right: 28px;
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+        color: #fff; font-size: 22px; width: 40px; height: 40px;
+        border-radius: 50%; cursor: pointer; z-index: 51;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.15s;
+      }
+      #pb-close:hover { background: rgba(255,255,255,0.25); }
+
+      /* NPC hover cursor */
+      body.npc-hover { cursor: pointer; }
     </style>
   </head>
   <body>
@@ -51,6 +177,34 @@
         <div id="loading-bar"></div>
       </div>
     </div>
+
+    <!-- Full-screen photobook overlay (opened by clicking the NPC) -->
+    <div id="pb-overlay">
+      <div id="pb-book">
+        <button id="pb-prev" class="pb-arrow">&#8249;</button>
+
+        <div id="pb-spread">
+          <div class="pb-page pb-left">
+            <div class="pb-mat"><img id="pb-img-left" src="" alt="" /></div>
+            <p class="pb-caption" id="pb-cap-left"></p>
+            <span class="pb-pgnum" id="pb-num-left"></span>
+          </div>
+
+          <div id="pb-spine"></div>
+
+          <div class="pb-page pb-right">
+            <div class="pb-mat"><img id="pb-img-right" src="" alt="" /></div>
+            <p class="pb-caption" id="pb-cap-right"></p>
+            <span class="pb-pgnum" id="pb-num-right"></span>
+          </div>
+        </div>
+
+        <button id="pb-next" class="pb-arrow">&#8250;</button>
+        <div id="pb-dots"></div>
+      </div>
+      <button id="pb-close">&#10005;</button>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
