@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CityWalk — Ambient Sound Generation Pipeline (ElevenLabs)
+ * CityWalk — Music Generation Pipeline (ElevenLabs Music)
  *
  * Usage:
  *   # From Gemini JSON (auto prompt synthesis):
@@ -17,6 +17,7 @@
  *   ELEVENLABS_API_KEY in .env
  */
 
+import { ElevenLabsClient } from 'elevenlabs'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -25,34 +26,34 @@ import 'dotenv/config'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 
+const MUSIC_LENGTH_MS = 60000  // 60 seconds
+
 // ─── Built-in city presets (fallback when no --input JSON given) ──────────────
 const CITY_PRESETS = {
   'tokyo-shibuya': {
     name: '东京涩谷',
     prompt:
-      'busy tokyo shibuya crossing at night, crowds of people walking, ' +
-      'distant city traffic, neon lights buzz, urban energy, rain on pavement',
-    duration: 22,
+      'ambient japanese city night, lo-fi beats, neon lights atmosphere, ' +
+      'warm synth pads, subtle distant crowd, 85bpm, nostalgic, dreamy, ' +
+      'city walk background music, no vocals',
   },
   'kyoto-alley': {
     name: '京都小巷',
     prompt:
-      'quiet japanese temple alley, gentle rain dripping, ' +
-      'distant temple bell echo, wind through bamboo, peaceful night atmosphere',
-    duration: 22,
+      'traditional japanese ambient, koto and shakuhachi, gentle rain, ' +
+      'peaceful temple bells in distance, slow 60bpm, zen atmosphere, ' +
+      'ancient city walk, no vocals',
   },
   'paris-street': {
     name: '巴黎街头',
     prompt:
-      'parisian street cafe at evening, light traffic passing, ' +
-      'distant chatter and laughter, cobblestone street ambience, warm city sounds',
-    duration: 22,
+      'french cafe ambient, soft accordion, parisian street atmosphere, ' +
+      'gentle piano, warm evening, 75bpm, romantic city stroll, no vocals',
   },
 }
 
 // ─── Prompt synthesis from Gemini JSON ───────────────────────────────────────
 
-// Keywords that map well to sound design
 const SOUND_KEYWORDS = [
   'rain', 'wet', 'pavement', 'traffic', 'crowd', 'footstep', 'wind',
   'bell', 'temple', 'night', 'city', 'urban', 'street', 'bustling',
@@ -61,10 +62,6 @@ const SOUND_KEYWORDS = [
   'cinematic', 'contemplative', 'peaceful', 'energetic', 'solemn',
 ]
 
-/**
- * Extract sound-relevant phrases from a single description.
- * Picks sentences that contain sound/atmosphere keywords.
- */
 function extractSoundPhrases(description) {
   const sentences = description.split(/[.,]/).map(s => s.trim()).filter(Boolean)
   return sentences.filter(sentence =>
@@ -72,16 +69,11 @@ function extractSoundPhrases(description) {
   )
 }
 
-/**
- * Synthesize a concise ElevenLabs prompt from Gemini photo descriptions.
- * Combines the most sound-relevant phrases across all photos into one prompt.
- */
 function synthesizePrompt(descriptions) {
   const allPhrases = descriptions.flatMap(item =>
     extractSoundPhrases(item.description)
   )
 
-  // Deduplicate and take the most varied phrases (up to 5)
   const seen = new Set()
   const selected = []
   for (const phrase of allPhrases) {
@@ -92,56 +84,40 @@ function synthesizePrompt(descriptions) {
     }
   }
 
-  // Build final prompt — ElevenLabs works best with concise, comma-separated descriptions
   const prompt = selected.join(', ').slice(0, 400)
-
-  console.log('\n[synthesize] Extracted sound prompt:')
+  console.log('\n[synthesize] Extracted music prompt:')
   console.log(`  "${prompt}"\n`)
-
   return prompt
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true })
 }
 
 // ─── Core generation ──────────────────────────────────────────────────────────
 
-async function generateAmbient(cityId, prompt, duration = 22) {
+async function generateMusic(cityId, prompt) {
   const outDir = path.join(ROOT, 'assets', 'cities', cityId)
   const outPath = path.join(outDir, 'music.mp3')
 
-  ensureDir(outDir)
+  fs.mkdirSync(outDir, { recursive: true })
 
   if (fs.existsSync(outPath)) {
     console.log(`[${cityId}] Already exists, skipping. Delete to regenerate.`)
     return outPath
   }
 
-  console.log(`[${cityId}] Calling ElevenLabs Sound Generation...`)
+  console.log(`[${cityId}] Calling ElevenLabs Music...`)
 
-  const response = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
-    method: 'POST',
-    headers: {
-      'xi-api-key': process.env.ELEVENLABS_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      text: prompt,
-      duration_seconds: duration,
-      prompt_influence: 0.3,
-    }),
+  const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+
+  const stream = await client.music.compose({
+    prompt,
+    musicLengthMs: MUSIC_LENGTH_MS,
   })
 
-  if (!response.ok) {
-    const errText = await response.text()
-    throw new Error(`ElevenLabs API error ${response.status}: ${errText}`)
+  const chunks = []
+  for await (const chunk of stream) {
+    chunks.push(chunk)
   }
 
-  const buffer = await response.arrayBuffer()
-  fs.writeFileSync(outPath, Buffer.from(buffer))
+  fs.writeFileSync(outPath, Buffer.concat(chunks))
 
   const stats = fs.statSync(outPath)
   console.log(`[${cityId}] Saved: ${outPath} (${(stats.size / 1024).toFixed(1)} KB)`)
@@ -164,7 +140,7 @@ async function main() {
   const inputFile = inputArg !== -1 ? args[inputArg + 1] : null
   const cityId    = cityArg  !== -1 ? args[cityArg  + 1] : null
 
-  console.log('CityWalk — Ambient Sound Generator (ElevenLabs)\n')
+  console.log('CityWalk — Music Generator (ElevenLabs Music)\n')
 
   // ── Mode A: Gemini JSON → synthesize prompt ──────────────────────────────
   if (inputFile) {
@@ -184,7 +160,7 @@ async function main() {
     console.log(`[${cityId}] Loaded ${descriptions.length} photo descriptions from Gemini JSON`)
 
     const prompt = synthesizePrompt(descriptions)
-    await generateAmbient(cityId, prompt)
+    await generateMusic(cityId, prompt)
     return
   }
 
@@ -203,7 +179,7 @@ async function main() {
   for (const [id, city] of Object.entries(toGenerate)) {
     console.log(`[${id}] Using preset prompt for: ${city.name}`)
     try {
-      const outPath = await generateAmbient(id, city.prompt, city.duration)
+      const outPath = await generateMusic(id, city.prompt)
       results.push({ id, status: 'ok', path: outPath })
     } catch (err) {
       console.error(`[${id}] Failed: ${err.message}`)
