@@ -21,7 +21,7 @@ const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.inner
 camera.position.set(0, 0, 0)
 camera.lookAt(0, 0, -1)
 
-// ─── Mouse-drag look (panorama style) ────────────────────────────────────────
+// ─── Mouse-drag look + WASD move ─────────────────────────────────────────────
 
 let yaw = 0, pitch = 0
 let dragging = false, lastX = 0, lastY = 0
@@ -36,6 +36,11 @@ window.addEventListener('mousemove', e => {
   lastX  = e.clientX; lastY = e.clientY
 })
 
+// WASD + arrow keys movement
+const keys = {}
+window.addEventListener('keydown', e => { keys[e.code] = true })
+window.addEventListener('keyup',   e => { keys[e.code] = false })
+
 // ─── Loading UI ──────────────────────────────────────────────────────────────
 
 const loadingEl  = document.getElementById('loading')
@@ -49,15 +54,24 @@ document.body.appendChild(dbg)
 
 // ─── Splat ───────────────────────────────────────────────────────────────────
 
+let boundary = null  // clamped XZ bounds set on load
+
 const splat = new SplatMesh({
   url: SPLAT_URL,
   onLoad: () => {
     if (loadingEl) loadingEl.style.display = 'none'
     const box = splat.getBoundingBox()
-    const center = new THREE.Vector3()
-    const size   = new THREE.Vector3()
-    if (box) { box.getCenter(center); box.getSize(size) }
-    dbg.textContent = `numSplats: ${splat.numSplats}\ncenter: ${center.toArray().map(v=>v.toFixed(2))}\nsize: ${size.toArray().map(v=>v.toFixed(2))}`
+    if (box) {
+      // Shrink inward so the camera stays inside visible content
+      const margin = 0.5
+      boundary = new THREE.Box3(
+        new THREE.Vector3(box.min.x + margin, -Infinity, box.min.z + margin),
+        new THREE.Vector3(box.max.x - margin,  Infinity, box.max.z - margin),
+      )
+      const size = new THREE.Vector3()
+      box.getSize(size)
+      dbg.textContent = `numSplats: ${splat.numSplats} | bounds XZ: ${size.x.toFixed(1)} × ${size.z.toFixed(1)}`
+    }
   },
 })
 
@@ -69,19 +83,6 @@ splat.initialized.catch(err => {
   if (loadingTxt) loadingTxt.textContent = `Load failed: ${err.message}`
 })
 
-// ─── Orientation tweaks (arrow keys) ─────────────────────────────────────────
-
-const ROT_STEP = Math.PI / 12
-window.addEventListener('keydown', e => {
-  switch (e.key) {
-    case 'ArrowUp':    splat.rotation.x -= ROT_STEP; break
-    case 'ArrowDown':  splat.rotation.x += ROT_STEP; break
-    case 'ArrowLeft':  splat.rotation.y -= ROT_STEP; break
-    case 'ArrowRight': splat.rotation.y += ROT_STEP; break
-    case 'r': case 'R': splat.rotation.set(Math.PI, 0, 0); break
-  }
-  dbg.textContent = `rot: ${splat.rotation.x.toFixed(2)}, ${splat.rotation.y.toFixed(2)}, ${splat.rotation.z.toFixed(2)}`
-})
 
 // ─── Resize ──────────────────────────────────────────────────────────────────
 
@@ -93,10 +94,28 @@ window.addEventListener('resize', () => {
 
 // ─── Render loop ─────────────────────────────────────────────────────────────
 
-const euler = new THREE.Euler(0, 0, 0, 'YXZ')
+const euler   = new THREE.Euler(0, 0, 0, 'YXZ')
+const forward = new THREE.Vector3()
+const right   = new THREE.Vector3()
+const SPEED   = 0.01
 
 renderer.setAnimationLoop(() => {
+  // Apply look rotation
   euler.set(pitch, yaw, 0)
   camera.quaternion.setFromEuler(euler)
+
+  // WASD movement in camera-facing direction (ignore vertical tilt for movement)
+  const flatYaw = new THREE.Euler(0, yaw, 0, 'YXZ')
+  forward.set(0, 0, -1).applyEuler(flatYaw)
+  right.set(1, 0, 0).applyEuler(flatYaw)
+
+  if (keys['KeyW'] || keys['ArrowUp'])    camera.position.addScaledVector(forward,  SPEED)
+  if (keys['KeyS'] || keys['ArrowDown'])  camera.position.addScaledVector(forward, -SPEED)
+  if (keys['KeyA'] || keys['ArrowLeft'])  camera.position.addScaledVector(right,   -SPEED)
+  if (keys['KeyD'] || keys['ArrowRight']) camera.position.addScaledVector(right,    SPEED)
+
+  // Clamp to splat bounds so the user can't walk out of the city
+  if (boundary) camera.position.clamp(boundary.min, boundary.max)
+
   renderer.render(scene, camera)
 })
