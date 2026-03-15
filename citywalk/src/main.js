@@ -16,24 +16,20 @@ const SPLAT_URL = cityId
 // Each entry = one two-page spread: [left photo, right photo]
 const SPREADS = [
   [
-    { url: '/benchmark/input-photos/pexels-nickkwanhk-2614818.jpg',   caption: 'Tokyo streets'           },
-    { url: '/benchmark/input-photos/pexels-agk42-2816904.jpg',        caption: 'City lights at dusk'     },
+    { url: '/benchmark/input-photos/pexels-nickkwanhk-2614818.jpg',  caption: 'Tokyo streets'       },
+    { url: '/benchmark/input-photos/pexels-agk42-2816904.jpg',       caption: 'City lights at dusk' },
   ],
   [
-    { url: '/benchmark/input-photos/pexels-dsd-143941-1829980.jpg',   caption: 'Urban exploration'       },
-    { url: '/benchmark/input-photos/pexels-pixabay-209798.jpg',       caption: 'Street scene'            },
+    { url: '/benchmark/input-photos/pexels-dsd-143941-1829980.jpg',  caption: 'Urban exploration'   },
+    { url: '/benchmark/input-photos/pexels-pixabay-209798.jpg',      caption: 'Street scene'        },
   ],
   [
-    { url: '/benchmark/input-photos/image.jpg',                        caption: 'Shibuya crossing'        },
-    { url: '/benchmark/input-photos/2025-07-12-IMG_6945.jpeg',         caption: 'Summer trip memory'      },
+    { url: '/benchmark/input-photos/image.jpg',                      caption: 'Shibuya crossing'    },
+    { url: '/benchmark/input-photos/2025-07-12-IMG_6945.jpeg',       caption: 'Summer trip memory'  },
   ],
   [
-    { url: '/benchmark/input-photos/L1001707-copy.jpg',                caption: 'Captured on film'        },
-    { url: '/benchmark/test-gemini-20260315000644/panorama_raw.png',   caption: 'World model – earlier'   },
-  ],
-  [
-    { url: '/benchmark/test-gemini-20260315065249/panorama_raw.png',  caption: 'World model – raw scan'  },
-    { url: '/benchmark/test-gemini-20260315065249/panorama.png',      caption: 'World model – AI refined'},
+    { url: '/benchmark/input-photos/L1001707-copy.jpg',                                               caption: 'Captured on film'     },
+    { url: '/benchmark/input-photos/Sensoji-Tokyo-_-Best-of-Tokyo-Tour-_-1.webp',                    caption: 'Sensoji Temple'       },
   ],
 ]
 
