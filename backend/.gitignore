@@ -1,0 +1,11 @@
+node_modules/
+
+# Runtime directories — temp uploads and generated output
+uploads/
+output/
+
+# Environment variables
+.env
+
+# Template uploads (runtime, city panorama templates uploaded by users)
+templates/
