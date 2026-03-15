@@ -17,7 +17,6 @@
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
-    "replicate": "^1.0.1",
     "vite": "^6.0.0"
   }
 }

@@ -8,15 +8,15 @@ City Description (text prompt)
         │  music/scripts/generate_music.js
         ▼
 ┌─────────────────────────────────┐
-│  Replicate API                  │
-│  model: meta/musicgen           │
-│  · model_version: stereo-large  │
-│  · duration: 60s                │
-│  · output_format: mp3           │
+│  ElevenLabs Sound Generation    │
+│  POST /v1/sound-generation      │
+│  · duration_seconds: 22         │
+│  · prompt_influence: 0.3        │
+│  · returns audio binary         │
 └────────────┬────────────────────┘
-             │ returns audio file URL
+             │ write binary to disk
              ▼
-        download .mp3
+        save as .mp3
              │
              ▼
    music/assets/cities/<city-id>/music.mp3
@@ -57,7 +57,7 @@ npm run generate-music
 npm run generate-music:tokyo
 ```
 
-Requires `REPLICATE_API_TOKEN` in `music/.env`. See `music/.env.example`.
+Requires `ELEVENLABS_API_KEY` in `music/.env`. See `music/.env.example`.
 
 ## City Prompts
 

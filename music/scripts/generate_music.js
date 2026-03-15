@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CityWalk — Text-to-Music Generation Pipeline
+ * CityWalk — Ambient Sound Generation Pipeline (ElevenLabs)
  *
  * Usage:
  *   node scripts/generate_music.js
@@ -10,14 +10,14 @@
  *   assets/cities/<city-id>/music.mp3
  *
  * Requires:
- *   REPLICATE_API_TOKEN in .env
+ *   ELEVENLABS_API_KEY in .env
+ *
+ * Note: ElevenLabs Sound Generation max duration is 22 seconds.
+ *       MusicController loops the file automatically.
  */
 
-import Replicate from 'replicate'
 import fs from 'fs'
 import path from 'path'
-import https from 'https'
-import http from 'http'
 import { fileURLToPath } from 'url'
 import 'dotenv/config'
 
@@ -25,68 +25,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 
 // ─── City definitions ────────────────────────────────────────────────────────
-// Each city has a text prompt that MusicGen will use to generate the music.
-// Tweak these prompts to get different vibes.
 const CITIES = {
   'tokyo-shibuya': {
     name: '东京涩谷',
     prompt:
-      'ambient japanese city night, lo-fi beats, neon lights atmosphere, ' +
-      'warm synth pads, subtle distant crowd, 85bpm, nostalgic, dreamy, ' +
-      'city walk background music, no vocals',
-    duration: 60,
+      'busy tokyo shibuya crossing at night, crowds of people walking, ' +
+      'distant city traffic, neon lights buzz, urban energy, rain on pavement',
+    duration: 22,
   },
   'kyoto-alley': {
     name: '京都小巷',
     prompt:
-      'traditional japanese ambient, koto and shakuhachi, gentle rain, ' +
-      'peaceful temple bells in distance, slow 60bpm, zen atmosphere, ' +
-      'ancient city walk, no vocals',
-    duration: 60,
+      'quiet japanese temple alley, gentle rain dripping, ' +
+      'distant temple bell echo, wind through bamboo, peaceful night atmosphere',
+    duration: 22,
   },
   'paris-street': {
     name: '巴黎街头',
     prompt:
-      'french cafe ambient, soft accordion, parisian street atmosphere, ' +
-      'gentle piano, warm evening, 75bpm, romantic city stroll, no vocals',
-    duration: 60,
+      'parisian street cafe at evening, light traffic passing, ' +
+      'distant chatter and laughter, cobblestone street ambience, warm city sounds',
+    duration: 22,
   },
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function downloadFile(url, destPath) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath)
-    const protocol = url.startsWith('https') ? https : http
-
-    protocol
-      .get(url, (response) => {
-        // Follow redirects
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          file.close()
-          fs.unlinkSync(destPath)
-          return downloadFile(response.headers.location, destPath)
-            .then(resolve)
-            .catch(reject)
-        }
-
-        if (response.statusCode !== 200) {
-          reject(new Error(`Download failed: HTTP ${response.statusCode}`))
-          return
-        }
-
-        response.pipe(file)
-        file.on('finish', () => {
-          file.close(resolve)
-        })
-      })
-      .on('error', (err) => {
-        fs.unlink(destPath, () => {})
-        reject(err)
-      })
-  })
-}
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true })
@@ -94,43 +57,40 @@ function ensureDir(dirPath) {
 
 // ─── Main pipeline ────────────────────────────────────────────────────────────
 
-async function generateMusic(cityId, city) {
+async function generateAmbient(cityId, city) {
   const outDir = path.join(ROOT, 'assets', 'cities', cityId)
   const outPath = path.join(outDir, 'music.mp3')
 
   ensureDir(outDir)
 
-  // Skip if already generated
   if (fs.existsSync(outPath)) {
     console.log(`[${cityId}] Already exists, skipping. Delete to regenerate.`)
     return outPath
   }
 
-  console.log(`\n[${cityId}] Generating music for: ${city.name}`)
+  console.log(`\n[${cityId}] Generating ambient sound for: ${city.name}`)
   console.log(`[${cityId}] Prompt: "${city.prompt}"`)
 
-  const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-  })
-
-  // MusicGen by Meta — the most reliable text-to-music model on Replicate
-  // Model: meta/musicgen
-  // Docs: https://replicate.com/meta/musicgen
-  const output = await replicate.run('meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb', {
-    input: {
-      prompt: city.prompt,
-      duration: city.duration,
-      model_version: 'stereo-large',   // best quality, stereo output
-      output_format: 'mp3',
-      normalization_strategy: 'peak',
+  const response = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
+    method: 'POST',
+    headers: {
+      'xi-api-key': process.env.ELEVENLABS_API_KEY,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      text: city.prompt,
+      duration_seconds: city.duration,
+      prompt_influence: 0.3,
+    }),
   })
 
-  // output is a URL string pointing to the generated audio
-  const audioUrl = typeof output === 'string' ? output : output[0]
+  if (!response.ok) {
+    const errText = await response.text()
+    throw new Error(`ElevenLabs API error ${response.status}: ${errText}`)
+  }
 
-  console.log(`[${cityId}] Generated. Downloading from: ${audioUrl}`)
-  await downloadFile(audioUrl, outPath)
+  const buffer = await response.arrayBuffer()
+  fs.writeFileSync(outPath, Buffer.from(buffer))
 
   const stats = fs.statSync(outPath)
   console.log(`[${cityId}] Saved to: ${outPath} (${(stats.size / 1024).toFixed(1)} KB)`)
@@ -139,13 +99,12 @@ async function generateMusic(cityId, city) {
 }
 
 async function main() {
-  if (!process.env.REPLICATE_API_TOKEN) {
-    console.error('Error: REPLICATE_API_TOKEN not found in environment.')
-    console.error('Create a .env file with: REPLICATE_API_TOKEN=r8_...')
+  if (!process.env.ELEVENLABS_API_KEY) {
+    console.error('Error: ELEVENLABS_API_KEY not found in environment.')
+    console.error('Create a .env file with: ELEVENLABS_API_KEY=sk_...')
     process.exit(1)
   }
 
-  // Allow --city <id> flag to generate only one city
   const cityArg = process.argv.indexOf('--city')
   const targetCity = cityArg !== -1 ? process.argv[cityArg + 1] : null
 
@@ -159,13 +118,13 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('CityWalk — Text-to-Music Generator')
+  console.log('CityWalk — Ambient Sound Generator (ElevenLabs)')
   console.log(`Generating ${Object.keys(toGenerate).length} city track(s)...\n`)
 
   const results = []
   for (const [cityId, city] of Object.entries(toGenerate)) {
     try {
-      const outPath = await generateMusic(cityId, city)
+      const outPath = await generateAmbient(cityId, city)
       results.push({ cityId, status: 'ok', path: outPath })
     } catch (err) {
       console.error(`[${cityId}] Failed: ${err.message}`)
