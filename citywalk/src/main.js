@@ -13,22 +13,27 @@ const SPLAT_URL = cityId
   : '/benchmark/test-gemini-20260315065249/world.spz'
 
 // ─── Photobook ────────────────────────────────────────────────────────────────
-// A floating photo album anchored inside the 3D world.
-// Walk within BOOK_OPEN_DIST metres → book opens like a real photobook.
-// Press Q / E (or left/right VR trigger) to flip between spreads.
-//
-// To use real trip photos: add images to benchmark/tokyo-shibuya/photos/ and
-// update the `url` fields in SPREADS below.
-
 // Each entry = one two-page spread: [left photo, right photo]
 const SPREADS = [
   [
-    { url: '/benchmark/test-gemini-20260315065249/panorama_raw.png', caption: 'Shibuya – raw capture' },
-    { url: '/benchmark/test-gemini-20260315065249/panorama.png',     caption: 'Shibuya – AI refined'  },
+    { url: '/benchmark/input-photos/pexels-nickkwanhk-2614818.jpg',   caption: 'Tokyo streets'           },
+    { url: '/benchmark/input-photos/pexels-agk42-2816904.jpg',        caption: 'City lights at dusk'     },
   ],
   [
-    { url: '/benchmark/test-gemini-20260315000644/panorama_raw.png', caption: 'Earlier take'          },
-    { url: '/benchmark/test-gemini-20260315000644/panorama.png',     caption: 'World model source'    },
+    { url: '/benchmark/input-photos/pexels-dsd-143941-1829980.jpg',   caption: 'Urban exploration'       },
+    { url: '/benchmark/input-photos/pexels-pixabay-209798.jpg',       caption: 'Street scene'            },
+  ],
+  [
+    { url: '/benchmark/input-photos/image.jpg',                        caption: 'Shibuya crossing'        },
+    { url: '/benchmark/input-photos/2025-07-12-IMG_6945.jpeg',         caption: 'Summer trip memory'      },
+  ],
+  [
+    { url: '/benchmark/input-photos/L1001707-copy.jpg',                caption: 'Captured on film'        },
+    { url: '/benchmark/test-gemini-20260315000644/panorama_raw.png',   caption: 'World model – earlier'   },
+  ],
+  [
+    { url: '/benchmark/test-gemini-20260315065249/panorama_raw.png',  caption: 'World model – raw scan'  },
+    { url: '/benchmark/test-gemini-20260315065249/panorama.png',      caption: 'World model – AI refined'},
   ],
 ]
 
@@ -60,6 +65,18 @@ camera.lookAt(0, 0, -1)
 // Audio listener — must be on the camera for positional audio to work
 const audioListener = new THREE.AudioListener()
 camera.add(audioListener)
+
+// ─── Background Music ─────────────────────────────────────────────────────────
+const bgMusic = new THREE.Audio(audioListener)
+new THREE.AudioLoader().load('/music.mp3', buffer => {
+  bgMusic.setBuffer(buffer)
+  bgMusic.setLoop(true)
+  bgMusic.setVolume(0.25)
+})
+renderer.xr.addEventListener('sessionstart', () => {
+  if (audioListener.context.state === 'suspended') audioListener.context.resume()
+  if (!bgMusic.isPlaying) bgMusic.play()
+})
 
 // ─── Shared canvas-texture helper ────────────────────────────────────────────
 
