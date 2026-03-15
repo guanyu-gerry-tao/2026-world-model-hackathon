@@ -6,6 +6,41 @@ import { SplatMesh } from '@sparkjsdev/spark'
 
 const SPLAT_URL = '/benchmark/test-gemini-20260315065249/world.spz'
 
+// ─── Photo Hotspots ──────────────────────────────────────────────────────────
+// Real photos anchored at positions inside the 3D world.
+// When you walk within PHOTO_SHOW_DIST metres the photo fades in as a floating
+// framed print; a white glowing dot marks the spot from further away.
+//
+// To add your own photos: drop image files into benchmark/tokyo-shibuya/photos/
+// and update the `url` paths below.  Positions are (x, y, z) in world-space
+// metres — y ≈ 1.4 keeps the frame at roughly eye-height.
+
+const PHOTO_HOTSPOTS = [
+  {
+    position: new THREE.Vector3(3,  1.4, -4),
+    url: '/benchmark/test-gemini-20260315065249/panorama_raw.png',
+    label: 'Shibuya – raw capture',
+  },
+  {
+    position: new THREE.Vector3(-3, 1.4, -3),
+    url: '/benchmark/test-gemini-20260315065249/panorama.png',
+    label: 'Shibuya – AI refined',
+  },
+  {
+    position: new THREE.Vector3(0,  1.4,  4),
+    url: '/benchmark/test-gemini-20260315000644/panorama_raw.png',
+    label: 'Earlier take',
+  },
+  {
+    position: new THREE.Vector3(-2.5, 1.4, 3),
+    url: '/benchmark/test-gemini-20260315000644/panorama.png',
+    label: 'World model source',
+  },
+]
+
+const PHOTO_SHOW_DIST  = 3.5  // metres – fully visible inside this radius
+const PHOTO_FADE_START = 6.0  // metres – start fading in
+
 // ─── Renderer ────────────────────────────────────────────────────────────────
 
 const renderer = new THREE.WebGLRenderer({ antialias: false })
@@ -30,6 +65,70 @@ scene.add(playerRig)
 // Panorama splat: start at the capture origin
 camera.position.set(0, 0, 0)
 camera.lookAt(0, 0, -1)
+
+// ─── Photo frame builder ─────────────────────────────────────────────────────
+
+const photoObjects = []
+
+function makeLabel(text) {
+  const cv  = document.createElement('canvas')
+  cv.width  = 512
+  cv.height = 64
+  const ctx = cv.getContext('2d')
+  ctx.clearRect(0, 0, 512, 64)
+  // semi-transparent dark pill
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'
+  ctx.beginPath()
+  ctx.roundRect(4, 4, 504, 56, 10)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font      = 'bold 26px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, 256, 34)
+  return new THREE.CanvasTexture(cv)
+}
+
+function createPhotoHotspot({ position, url, label }) {
+  const group = new THREE.Group()
+  group.position.copy(position)
+
+  // ── Glowing white dot (visible from distance) ──
+  const dotGeo = new THREE.SphereGeometry(0.13, 10, 10)
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 })
+  const dot    = new THREE.Mesh(dotGeo, dotMat)
+  group.add(dot)
+
+  // ── White backing / frame ──
+  const bgGeo = new THREE.PlaneGeometry(1.84, 1.02)
+  const bgMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+  const bg    = new THREE.Mesh(bgGeo, bgMat)
+  bg.position.set(0, 0.1, -0.003)
+  group.add(bg)
+
+  // ── Photo plane ──
+  const loader = new THREE.TextureLoader()
+  const tex    = loader.load(url)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const photoGeo = new THREE.PlaneGeometry(1.8, 0.9)   // 2:1 matches panorama AR
+  const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0 })
+  const photoMesh = new THREE.Mesh(photoGeo, photoMat)
+  photoMesh.position.set(0, 0.1, 0)
+  group.add(photoMesh)
+
+  // ── Label strip below the photo ──
+  const labelTex = makeLabel(label)
+  const labelGeo = new THREE.PlaneGeometry(1.8, 0.22)
+  const labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, opacity: 0, depthWrite: false })
+  const labelMesh = new THREE.Mesh(labelGeo, labelMat)
+  labelMesh.position.set(0, -0.42, 0)
+  group.add(labelMesh)
+
+  scene.add(group)
+  photoObjects.push({ group, photoMat, bgMat, labelMat, dotMat })
+}
+
+PHOTO_HOTSPOTS.forEach(createPhotoHotspot)
 
 // ─── Mouse-drag look + WASD move ─────────────────────────────────────────────
 
@@ -229,6 +328,30 @@ renderer.setAnimationLoop(() => {
 
   // Clamp to splat bounds so the user can't walk out of the city
   if (boundary) playerRig.position.clamp(boundary.min, boundary.max)
+
+  // ── Photo hotspot proximity + billboard ───────────────────────────────────
+  const camWorld = new THREE.Vector3()
+  camera.getWorldPosition(camWorld)
+
+  for (const obj of photoObjects) {
+    const dist = camWorld.distanceTo(obj.group.position)
+
+    // Billboard: rotate group to face camera, keeping upright on Y
+    obj.group.lookAt(camWorld.x, obj.group.position.y, camWorld.z)
+
+    // Fade in as player approaches
+    const t = THREE.MathUtils.clamp(
+      (PHOTO_FADE_START - dist) / (PHOTO_FADE_START - PHOTO_SHOW_DIST),
+      0, 1
+    )
+    const eased = t * t * (3 - 2 * t)  // smoothstep
+
+    obj.photoMat.opacity  = eased
+    obj.bgMat.opacity     = eased
+    obj.labelMat.opacity  = eased
+    // Dot: visible far away, fades out when photo appears
+    obj.dotMat.opacity    = 1 - eased * 0.85
+  }
 
   renderer.render(scene, camera)
 })
