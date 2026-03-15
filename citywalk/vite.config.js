@@ -39,8 +39,9 @@ export default defineConfig({
   server: {
     host: true,       // expose on LAN so PICO headset can reach it
     port: 3000,
-  },
-  optimizeDeps: {
-    exclude: ['@mkkellogg/gaussian-splats-3d'],
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
   },
 })
