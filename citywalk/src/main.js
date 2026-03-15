@@ -294,8 +294,11 @@ loadJournalEntries()
 // A simple humanoid figure standing in the world holding a camera.
 // Click / tap them → full-screen photobook overlay opens.
 
+// NPC_GROUND_Y: in the panorama-captured world, y=0 is eye level (~1.7 m above ground)
+const NPC_GROUND_Y = -1.7
+
 const npcGroup = new THREE.Group()
-npcGroup.position.set(1.5, 0, -3.5)
+npcGroup.position.set(1.5, NPC_GROUND_Y, -3.5)
 scene.add(npcGroup)
 
 const npcMeshes = []   // collected for raycasting
@@ -689,8 +692,8 @@ renderer.setAnimationLoop(() => {
   const t = Date.now() * 0.001
   // Always face the camera (billboard on Y axis)
   npcGroup.lookAt(camWorld.x, npcGroup.position.y, camWorld.z)
-  // Subtle breathing bob
-  npcGroup.position.y = Math.sin(t * 0.9) * 0.007
+  // Subtle breathing bob — add to the ground base, don't replace it
+  npcGroup.position.y = NPC_GROUND_Y + Math.sin(t * 0.9) * 0.007
 
   // hint label always faces camera
   hintBillboard.lookAt(camWorld.x, hintBillboard.getWorldPosition(new THREE.Vector3()).y, camWorld.z)
