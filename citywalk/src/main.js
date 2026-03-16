@@ -69,10 +69,14 @@ new THREE.AudioLoader().load('/music.mp3', buffer => {
   bgMusic.setLoop(true)
   bgMusic.setVolume(0.25)
 })
-renderer.xr.addEventListener('sessionstart', () => {
+function startMusic() {
   if (audioListener.context.state === 'suspended') audioListener.context.resume()
   if (!bgMusic.isPlaying) bgMusic.play()
-})
+}
+
+renderer.xr.addEventListener('sessionstart', startMusic)
+window.addEventListener('click', startMusic, { once: true })
+window.addEventListener('touchend', startMusic, { once: true })
 
 // ─── Shared canvas-texture helper ────────────────────────────────────────────
 
@@ -192,7 +196,7 @@ const DEMO_ORB_TRIGGER = 1.5  // tighter than default so it only plays up close
   new THREE.AudioLoader().load('/benchmark/journal-sai.mp3', buffer => audio.setBuffer(buffer))
 
   // Use DEMO_ORB_TRIGGER (not the global JOURNAL_TRIGGER_DIST) for proximity check
-  journalOrbs.push({ orb, audio, entry: { author: 'Sai', avatarUrl: '/benchmark/avatar-sai.png' }, labelMat, triggerDist: DEMO_ORB_TRIGGER })
+  journalOrbs.push({ orb, audio, entry: { author: 'Sai', avatarUrl: '/benchmark/avatar-sai.png' }, labelMat, triggerDist: DEMO_ORB_TRIGGER, wasOutside: true })
 })()
 
 // ─── Photographer NPC ────────────────────────────────────────────────────────
@@ -267,7 +271,7 @@ SPREADS.forEach((_, i) => {
 
 let pbCurrentSpread = 0
 let pbOpen = false
-let pbManuallyClosed = false  // prevents auto-reopen after user clicks close
+let pbWasOutsideNpc = true  // true = player was outside zone; resets trigger on each approach
 
 function pbPopulate(index) {
   const spread = SPREADS[index]
@@ -350,18 +354,17 @@ function openPhotobookOverlay() {
   }
 }
 
-function closePhotobookOverlay(manual = false) {
+function closePhotobookOverlay() {
   pbOverlay.classList.remove('open')
   vrBook.visible = false
   pbOpen = false
-  if (manual) pbManuallyClosed = true
 }
 
 document.getElementById('pb-prev').addEventListener('click',  () => pbGoTo(pbCurrentSpread - 1, -1))
 document.getElementById('pb-next').addEventListener('click',  () => pbGoTo(pbCurrentSpread + 1,  1))
-document.getElementById('pb-close').addEventListener('click',    () => closePhotobookOverlay(true))
-document.getElementById('pb-close').addEventListener('touchend', e => { e.preventDefault(); closePhotobookOverlay(true) })
-window.addEventListener('keydown', e => { if (e.code === 'Escape' && pbOpen) closePhotobookOverlay(true) })
+document.getElementById('pb-close').addEventListener('click',    closePhotobookOverlay)
+document.getElementById('pb-close').addEventListener('touchend', e => { e.preventDefault(); closePhotobookOverlay() })
+window.addEventListener('keydown', e => { if (e.code === 'Escape' && pbOpen) closePhotobookOverlay() })
 
 // ─── Raycaster for NPC click ──────────────────────────────────────────────────
 
@@ -649,9 +652,12 @@ renderer.setAnimationLoop(() => {
   const npcWorldPos = new THREE.Vector3(1.5, NPC_GROUND_Y, -3.5)
   const distToNpc   = new THREE.Vector2(camWorld.x, camWorld.z)
     .distanceTo(new THREE.Vector2(npcWorldPos.x, npcWorldPos.z))
-  if (distToNpc > NPC_POPUP_CLOSE) pbManuallyClosed = false  // reset when user walks away
-  if (!pbOpen && !pbManuallyClosed && distToNpc < NPC_POPUP_OPEN)   openPhotobookOverlay()
-  if ( pbOpen && distToNpc > NPC_POPUP_CLOSE)  closePhotobookOverlay()
+  if (distToNpc > NPC_POPUP_OPEN) pbWasOutsideNpc = true   // reset when player leaves zone
+  if (!pbOpen && pbWasOutsideNpc && distToNpc < NPC_POPUP_OPEN) {
+    pbWasOutsideNpc = false
+    openPhotobookOverlay()
+  }
+  if (pbOpen && distToNpc > NPC_POPUP_CLOSE) closePhotobookOverlay()
 
   // ── Journal orb proximity + auto-play + popup ────────────────────────────
 
@@ -671,8 +677,11 @@ renderer.setAnimationLoop(() => {
     const pulse = near ? 1 + 0.2 * Math.sin(tOrb + item.orb.position.x) : 1
     item.orb.scale.setScalar(pulse)
 
-    // Auto-play voice when player enters trigger radius
-    if (dist < trigger && item.audio.buffer && !item.audio.isPlaying) {
+    // Auto-play voice on each entry into trigger radius
+    if (dist > trigger) item.wasOutside = true
+    if (dist < trigger && item.wasOutside && item.audio.buffer) {
+      item.wasOutside = false
+      if (item.audio.isPlaying) item.audio.stop()
       item.audio.play()
     }
 
