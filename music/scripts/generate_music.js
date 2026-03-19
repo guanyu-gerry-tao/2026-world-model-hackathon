@@ -1,40 +1,41 @@
 #!/usr/bin/env node
 /**
- * CityWalk — Text-to-Music Generation Pipeline
+ * CityWalk — Music Generation Pipeline (ElevenLabs Music)
  *
  * Usage:
- *   node scripts/generate_music.js
+ *   # From Gemini JSON (auto prompt synthesis):
+ *   node scripts/generate_music.js --input photo_descriptions.json --city tokyo-shibuya
+ *
+ *   # From built-in city presets:
  *   node scripts/generate_music.js --city tokyo-shibuya
+ *   node scripts/generate_music.js  (generates all presets)
  *
  * Output:
  *   assets/cities/<city-id>/music.mp3
  *
  * Requires:
- *   REPLICATE_API_TOKEN in .env
+ *   ELEVENLABS_API_KEY in .env
  */
 
-import Replicate from 'replicate'
+import { ElevenLabsClient } from 'elevenlabs'
 import fs from 'fs'
 import path from 'path'
-import https from 'https'
-import http from 'http'
 import { fileURLToPath } from 'url'
 import 'dotenv/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 
-// ─── City definitions ────────────────────────────────────────────────────────
-// Each city has a text prompt that MusicGen will use to generate the music.
-// Tweak these prompts to get different vibes.
-const CITIES = {
+const MUSIC_LENGTH_MS = 60000  // 60 seconds
+
+// ─── Built-in city presets (fallback when no --input JSON given) ──────────────
+const CITY_PRESETS = {
   'tokyo-shibuya': {
     name: '东京涩谷',
     prompt:
       'ambient japanese city night, lo-fi beats, neon lights atmosphere, ' +
       'warm synth pads, subtle distant crowd, 85bpm, nostalgic, dreamy, ' +
       'city walk background music, no vocals',
-    duration: 60,
   },
   'kyoto-alley': {
     name: '京都小巷',
@@ -42,142 +43,154 @@ const CITIES = {
       'traditional japanese ambient, koto and shakuhachi, gentle rain, ' +
       'peaceful temple bells in distance, slow 60bpm, zen atmosphere, ' +
       'ancient city walk, no vocals',
-    duration: 60,
   },
   'paris-street': {
     name: '巴黎街头',
     prompt:
       'french cafe ambient, soft accordion, parisian street atmosphere, ' +
       'gentle piano, warm evening, 75bpm, romantic city stroll, no vocals',
-    duration: 60,
   },
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Prompt synthesis from Gemini JSON ───────────────────────────────────────
 
-function downloadFile(url, destPath) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath)
-    const protocol = url.startsWith('https') ? https : http
+const SOUND_KEYWORDS = [
+  'rain', 'wet', 'pavement', 'traffic', 'crowd', 'footstep', 'wind',
+  'bell', 'temple', 'night', 'city', 'urban', 'street', 'bustling',
+  'tranquil', 'serene', 'melancholic', 'vibrant', 'quiet', 'hum',
+  'echo', 'distant', 'rhythm', 'heartbeat', 'pulse', 'buzz', 'glow',
+  'cinematic', 'contemplative', 'peaceful', 'energetic', 'solemn',
+]
 
-    protocol
-      .get(url, (response) => {
-        // Follow redirects
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          file.close()
-          fs.unlinkSync(destPath)
-          return downloadFile(response.headers.location, destPath)
-            .then(resolve)
-            .catch(reject)
-        }
-
-        if (response.statusCode !== 200) {
-          reject(new Error(`Download failed: HTTP ${response.statusCode}`))
-          return
-        }
-
-        response.pipe(file)
-        file.on('finish', () => {
-          file.close(resolve)
-        })
-      })
-      .on('error', (err) => {
-        fs.unlink(destPath, () => {})
-        reject(err)
-      })
-  })
+function extractSoundPhrases(description) {
+  const sentences = description.split(/[.,]/).map(s => s.trim()).filter(Boolean)
+  return sentences.filter(sentence =>
+    SOUND_KEYWORDS.some(kw => sentence.toLowerCase().includes(kw))
+  )
 }
 
-function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true })
+function synthesizePrompt(descriptions) {
+  const allPhrases = descriptions.flatMap(item =>
+    extractSoundPhrases(item.description)
+  )
+
+  const seen = new Set()
+  const selected = []
+  for (const phrase of allPhrases) {
+    const key = phrase.toLowerCase().slice(0, 20)
+    if (!seen.has(key) && selected.length < 5) {
+      seen.add(key)
+      selected.push(phrase)
+    }
+  }
+
+  const prompt = selected.join(', ').slice(0, 400)
+  console.log('\n[synthesize] Extracted music prompt:')
+  console.log(`  "${prompt}"\n`)
+  return prompt
 }
 
-// ─── Main pipeline ────────────────────────────────────────────────────────────
+// ─── Core generation ──────────────────────────────────────────────────────────
 
-async function generateMusic(cityId, city) {
+async function generateMusic(cityId, prompt) {
   const outDir = path.join(ROOT, 'assets', 'cities', cityId)
   const outPath = path.join(outDir, 'music.mp3')
 
-  ensureDir(outDir)
+  fs.mkdirSync(outDir, { recursive: true })
 
-  // Skip if already generated
   if (fs.existsSync(outPath)) {
     console.log(`[${cityId}] Already exists, skipping. Delete to regenerate.`)
     return outPath
   }
 
-  console.log(`\n[${cityId}] Generating music for: ${city.name}`)
-  console.log(`[${cityId}] Prompt: "${city.prompt}"`)
+  console.log(`[${cityId}] Calling ElevenLabs Music...`)
 
-  const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
+  const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+
+  const stream = await client.music.compose({
+    prompt,
+    musicLengthMs: MUSIC_LENGTH_MS,
   })
 
-  // MusicGen by Meta — the most reliable text-to-music model on Replicate
-  // Model: meta/musicgen
-  // Docs: https://replicate.com/meta/musicgen
-  const output = await replicate.run('meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb', {
-    input: {
-      prompt: city.prompt,
-      duration: city.duration,
-      model_version: 'stereo-large',   // best quality, stereo output
-      output_format: 'mp3',
-      normalization_strategy: 'peak',
-    },
-  })
+  const chunks = []
+  for await (const chunk of stream) {
+    chunks.push(chunk)
+  }
 
-  // output is a URL string pointing to the generated audio
-  const audioUrl = typeof output === 'string' ? output : output[0]
-
-  console.log(`[${cityId}] Generated. Downloading from: ${audioUrl}`)
-  await downloadFile(audioUrl, outPath)
+  fs.writeFileSync(outPath, Buffer.concat(chunks))
 
   const stats = fs.statSync(outPath)
-  console.log(`[${cityId}] Saved to: ${outPath} (${(stats.size / 1024).toFixed(1)} KB)`)
+  console.log(`[${cityId}] Saved: ${outPath} (${(stats.size / 1024).toFixed(1)} KB)`)
 
   return outPath
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
-  if (!process.env.REPLICATE_API_TOKEN) {
-    console.error('Error: REPLICATE_API_TOKEN not found in environment.')
-    console.error('Create a .env file with: REPLICATE_API_TOKEN=r8_...')
+  if (!process.env.ELEVENLABS_API_KEY) {
+    console.error('Error: ELEVENLABS_API_KEY not found in .env')
     process.exit(1)
   }
 
-  // Allow --city <id> flag to generate only one city
-  const cityArg = process.argv.indexOf('--city')
-  const targetCity = cityArg !== -1 ? process.argv[cityArg + 1] : null
+  const args = process.argv.slice(2)
+  const inputArg = args.indexOf('--input')
+  const cityArg  = args.indexOf('--city')
 
-  const toGenerate = targetCity
-    ? { [targetCity]: CITIES[targetCity] }
-    : CITIES
+  const inputFile = inputArg !== -1 ? args[inputArg + 1] : null
+  const cityId    = cityArg  !== -1 ? args[cityArg  + 1] : null
 
-  if (targetCity && !CITIES[targetCity]) {
-    console.error(`Unknown city: ${targetCity}`)
-    console.error(`Available cities: ${Object.keys(CITIES).join(', ')}`)
-    process.exit(1)
+  console.log('CityWalk — Music Generator (ElevenLabs Music)\n')
+
+  // ── Mode A: Gemini JSON → synthesize prompt ──────────────────────────────
+  if (inputFile) {
+    if (!cityId) {
+      console.error('Error: --input requires --city <id>')
+      console.error('Example: node scripts/generate_music.js --input photo_descriptions.json --city tokyo-shibuya')
+      process.exit(1)
+    }
+
+    const jsonPath = path.resolve(inputFile)
+    if (!fs.existsSync(jsonPath)) {
+      console.error(`Error: File not found: ${jsonPath}`)
+      process.exit(1)
+    }
+
+    const descriptions = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+    console.log(`[${cityId}] Loaded ${descriptions.length} photo descriptions from Gemini JSON`)
+
+    const prompt = synthesizePrompt(descriptions)
+    await generateMusic(cityId, prompt)
+    return
   }
 
-  console.log('CityWalk — Text-to-Music Generator')
-  console.log(`Generating ${Object.keys(toGenerate).length} city track(s)...\n`)
+  // ── Mode B: Built-in presets ─────────────────────────────────────────────
+  const toGenerate = cityId
+    ? { [cityId]: CITY_PRESETS[cityId] }
+    : CITY_PRESETS
+
+  if (cityId && !CITY_PRESETS[cityId]) {
+    console.error(`Unknown city preset: ${cityId}`)
+    console.error(`Available presets: ${Object.keys(CITY_PRESETS).join(', ')}`)
+    process.exit(1)
+  }
 
   const results = []
-  for (const [cityId, city] of Object.entries(toGenerate)) {
+  for (const [id, city] of Object.entries(toGenerate)) {
+    console.log(`[${id}] Using preset prompt for: ${city.name}`)
     try {
-      const outPath = await generateMusic(cityId, city)
-      results.push({ cityId, status: 'ok', path: outPath })
+      const outPath = await generateMusic(id, city.prompt)
+      results.push({ id, status: 'ok', path: outPath })
     } catch (err) {
-      console.error(`[${cityId}] Failed: ${err.message}`)
-      results.push({ cityId, status: 'error', error: err.message })
+      console.error(`[${id}] Failed: ${err.message}`)
+      results.push({ id, status: 'error', error: err.message })
     }
   }
 
   console.log('\n─── Summary ───────────────────────────────')
   for (const r of results) {
     const icon = r.status === 'ok' ? '✓' : '✗'
-    const detail = r.status === 'ok' ? r.path : r.error
-    console.log(`${icon} ${r.cityId}: ${detail}`)
+    console.log(`${icon} ${r.id}: ${r.status === 'ok' ? r.path : r.error}`)
   }
 }
 
